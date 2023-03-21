@@ -23,6 +23,10 @@ kotlin {
         val jvmMain by getting {
             dependencies {
                 implementation(compose.desktop.currentOs)
+                implementation("cafe.adriel.lyricist:lyricist:1.2.2")
+                implementation("io.github.wolfraam:chessgame:1.4")
+                api("com.arkivanov.decompose:decompose:1.0.0-beta-01")
+                api("com.arkivanov.decompose:extensions-compose-jetbrains:1.0.0-beta-01")
             }
         }
         val jvmTest by getting
@@ -36,6 +40,9 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "PeerChess"
             packageVersion = "1.0.0"
+            description = "Play chess remotely with your friends."
+            vendor = "Laurent Bernabe"
+            licenseFile.set(project.file("license.txt"))
         }
     }
 }
