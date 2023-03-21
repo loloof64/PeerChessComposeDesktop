@@ -111,6 +111,7 @@ data class Strings(
     val wrongFieldsCountFen: String,
     val oppositeKingInCheckFen: String,
     val wrongKingsCountFen: String,
+    val eraseCell: String,
 )
 
 val strings = mapOf(

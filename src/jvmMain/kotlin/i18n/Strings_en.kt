@@ -108,5 +108,6 @@ val enStrings = Strings(
     differentTimeForBlack = "Different time for black",
     wrongFieldsCountFen = "The start position FEN has a wrong fields count.",
     oppositeKingInCheckFen = "The start position FEN has opposite king in check.",
-    wrongKingsCountFen = "The start position FEN has not the right count for kings."
+    wrongKingsCountFen = "The start position FEN has not the right count for kings.",
+    eraseCell = "Erase cell"
 )

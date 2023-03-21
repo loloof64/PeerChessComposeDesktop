@@ -109,4 +109,5 @@ val esStrings = Strings(
     wrongFieldsCountFen = "La posición de inicio FEN tiene un recuento de campos incorrecto.",
     oppositeKingInCheckFen = "La posición inicial FEN tiene al rey opuesto en jaque.",
     wrongKingsCountFen = "La posición inicial FEN no tiene la cuenta correcta para reyes.",
+    eraseCell = "Borrar celda"
 )

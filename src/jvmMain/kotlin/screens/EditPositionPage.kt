@@ -431,7 +431,12 @@ fun PositionEditingControls(
                 )
             } else {
                 Row(modifier = Modifier.border(width = 1.dp, color = Color.Black, shape = RectangleShape).size(50.dp)) {
-
+                    Image(
+                        modifier = Modifier.border(width = 1.dp, color = Color.Black, shape = RectangleShape).size(50.dp),
+                        painter = painterResource("images/material_vectors/delete.svg"),
+                        contentDescription = strings.eraseCell,
+                        colorFilter = ColorFilter.tint(Color.Red)
+                    )
                 }
             }
             IconButton({ onEditingPieceChange(emptyCell) }) {

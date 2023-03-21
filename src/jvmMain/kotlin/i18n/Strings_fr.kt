@@ -108,5 +108,6 @@ val frStrings = Strings(
     differentTimeForBlack = "Temps différent pour les Noirs",
     wrongFieldsCountFen = "Le code FEN de la position de départ n'a pas le nombre de champs requis.",
     oppositeKingInCheckFen = "Le code FEN de la position de départ a le roi adverse en échec.",
-    wrongKingsCountFen = "Le code FEN de la position de départ n'a pas le bon compte de rois."
+    wrongKingsCountFen = "Le code FEN de la position de départ n'a pas le bon compte de rois.",
+    eraseCell = "Effacer la case"
 )
