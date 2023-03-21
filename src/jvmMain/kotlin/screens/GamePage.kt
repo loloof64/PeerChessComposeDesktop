@@ -50,7 +50,7 @@ fun GamePage(
     var pendingPromotion by rememberSaveable { mutableStateOf(ChessGameManager.getPendingPromotion()) }
     var pendingPromotionStartSquare by rememberSaveable { mutableStateOf(ChessGameManager.getPendingPromotionStartSquare()) }
     var pendingPromotionEndSquare by rememberSaveable { mutableStateOf(ChessGameManager.getPendingPromotionEndSquare()) }
-    val historyElements by rememberSaveable { mutableStateOf(ChessGameManager.getHistoryElements()) }
+    var historyElements by rememberSaveable { mutableStateOf(ChessGameManager.getHistoryElements()) }
     var selectedHistoryNodeIndex by rememberSaveable { mutableStateOf(ChessGameManager.getSelectedHistoryNodeIndex()) }
     var whitePlayerType by rememberSaveable { mutableStateOf(ChessGameManager.getWhitePlayerType()) }
     var blackPlayerType by rememberSaveable { mutableStateOf(ChessGameManager.getBlackPlayerType()) }
@@ -204,8 +204,21 @@ fun GamePage(
         }
     }
 
+    fun updateGameStatus() {
+        boardPieces = ChessGameManager.getPieces()
+        isWhiteTurn = ChessGameManager.isWhiteTurn()
+        gameInProgress = ChessGameManager.isGameInProgress()
+        whitePlayerType = ChessGameManager.getWhitePlayerType()
+        blackPlayerType = ChessGameManager.getBlackPlayerType()
+        lastMoveArrow = ChessGameManager.getLastMoveArrow()
+        historyElements = ChessGameManager.getHistoryElements()
+        selectedHistoryNodeIndex = ChessGameManager.getSelectedHistoryNodeIndex()
+    }
+
     fun startNewGame() {
-        navigation.push(Screen.EditPosition)
+        navigation.push(Screen.EditPosition{
+            updateGameStatus()
+        })
     }
 
     fun purposeStopGame() {
@@ -256,20 +269,6 @@ fun GamePage(
         pendingPromotion = ChessGameManager.getPendingPromotion()
         pendingPromotionStartSquare = ChessGameManager.getPendingPromotionStartSquare()
         pendingPromotionEndSquare = ChessGameManager.getPendingPromotionEndSquare()
-    }
-
-    fun handleWhiteSideTypeChange(newState: Boolean) {
-        if (gameInProgress) {
-            whitePlayerType = if (newState) PlayerType.Computer else PlayerType.Human
-            ChessGameManager.setWhitePlayerType(whitePlayerType)
-        }
-    }
-
-    fun handleBlackSideTypeChange(newState: Boolean) {
-        if (gameInProgress) {
-            blackPlayerType = if (newState) PlayerType.Computer else PlayerType.Human
-            ChessGameManager.setBlackPlayerType(blackPlayerType)
-        }
     }
 
     fun hoursFor(timeInDeciSeconds: Int): Int {
@@ -409,8 +408,6 @@ fun GamePage(
                 }
             })
         }) {
-
-            val spinnerSizeRatio = 0.3f
 
             Column(
                 verticalArrangement = Arrangement.Top

@@ -34,6 +34,7 @@ fun MainContent() {
 
             is Screen.EditPosition -> EditPositionPage(
                 navigation = navigation,
+                commitValidateActions = screen.validateAction,
             )
         }
     }
@@ -47,5 +48,5 @@ sealed class Screen : Parcelable {
     object Game : Screen()
 
     @Parcelize
-    object EditPosition : Screen()
+    data class EditPosition(val validateAction: () -> Unit) : Screen()
 }

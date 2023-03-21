@@ -78,7 +78,8 @@ private fun <T> List<List<T>>.replace(row: Int, col: Int, newValue: T): List<Lis
 
 @Composable
 fun EditPositionPage(
-    navigation: StackNavigation<Screen>
+    navigation: StackNavigation<Screen>,
+    commitValidateActions: () -> Unit,
 ) {
     val strings = LocalStrings.current
     val clipboardManager = LocalClipboardManager.current
@@ -124,7 +125,9 @@ fun EditPositionPage(
             ChessGameManager.resetGame()
             navigation.pop()
             navigation.pop()
-            navigation.push(Screen.Game)
+            navigation.push(Screen.Game) {
+                commitValidateActions()
+            }
         }
         catch (ex: KingNotInTurnIsInCheck) {
             coroutineScope.launch {
