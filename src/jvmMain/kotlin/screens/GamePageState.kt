@@ -1,14 +1,15 @@
 package screens
 
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import kotlinx.coroutines.*
 
 
 @Composable
-fun rememberGamePageClockState(
+fun rememberSaveableGamePageClockState(
     coroutineScope: CoroutineScope = rememberCoroutineScope(),
 ) : GamePageClockState {
- return remember(coroutineScope) {
+ return rememberSaveable(coroutineScope) {
      GamePageClockState(coroutineScope)
  }
 }

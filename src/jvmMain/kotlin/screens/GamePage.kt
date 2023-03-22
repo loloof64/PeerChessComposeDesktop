@@ -34,7 +34,7 @@ import javax.swing.filechooser.FileNameExtensionFilter
 @Composable
 fun GamePage(
     navigation: StackNavigation<Screen>,
-    clockState: GamePageClockState = rememberGamePageClockState()
+    clockState: GamePageClockState = rememberSaveableGamePageClockState()
 ) {
     val scaffoldState = rememberScaffoldState()
     val coroutineScope = rememberCoroutineScope()
