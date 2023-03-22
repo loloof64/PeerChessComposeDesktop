@@ -7,7 +7,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -23,39 +22,20 @@ import i18n.LocalStrings
 import io.github.wolfraam.chessgame.board.Square
 import kotlinx.coroutines.*
 import logic.ChessGameManager
-import logic.PreferencesManager
-import java.awt.KeyboardFocusManager
 import java.text.SimpleDateFormat
 import java.util.*
-import javax.swing.JFileChooser
-import javax.swing.filechooser.FileNameExtensionFilter
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun GamePage(
     navigation: StackNavigation<Screen>,
-    clockState: GamePageClockState = rememberSaveableGamePageClockState()
+    clockState: GamePageClockState = rememberSaveableGamePageClockState(),
+    gameLogicState: GamePageLogicState = rememberSaveableGamePageLogicState(),
 ) {
     val scaffoldState = rememberScaffoldState()
     val coroutineScope = rememberCoroutineScope()
 
     val strings = LocalStrings.current
-    var purposeStartGameDialogOpen by rememberSaveable { mutableStateOf(false) }
-    var purposeStopGameDialogOpen by rememberSaveable { mutableStateOf(false) }
-    var confirmExitGameDialogOpen by rememberSaveable { mutableStateOf(false) }
-    var boardReversed by rememberSaveable { mutableStateOf(false) }
-    var gameInProgress by rememberSaveable { mutableStateOf(ChessGameManager.isGameInProgress()) }
-    var boardPieces by rememberSaveable { mutableStateOf(ChessGameManager.getPieces()) }
-    var isWhiteTurn by rememberSaveable { mutableStateOf(ChessGameManager.isWhiteTurn()) }
-    var lastMoveArrow by rememberSaveable { mutableStateOf(ChessGameManager.getLastMoveArrow()) }
-    var pendingPromotion by rememberSaveable { mutableStateOf(ChessGameManager.getPendingPromotion()) }
-    var pendingPromotionStartSquare by rememberSaveable { mutableStateOf(ChessGameManager.getPendingPromotionStartSquare()) }
-    var pendingPromotionEndSquare by rememberSaveable { mutableStateOf(ChessGameManager.getPendingPromotionEndSquare()) }
-    var historyElements by rememberSaveable { mutableStateOf(ChessGameManager.getHistoryElements()) }
-    var selectedHistoryNodeIndex by rememberSaveable { mutableStateOf(ChessGameManager.getSelectedHistoryNodeIndex()) }
-    var whitePlayerType by rememberSaveable { mutableStateOf(ChessGameManager.getWhitePlayerType()) }
-    var blackPlayerType by rememberSaveable { mutableStateOf(ChessGameManager.getBlackPlayerType()) }
-
 
     suspend fun stopGameByTimeout(whiteTimeout: Boolean) {
         clockState.clockJob?.cancel()
@@ -63,117 +43,42 @@ fun GamePage(
         clockState.clockJob = null
         clockState.clockActive = false
 
-        if (ChessGameManager.checkIfPlayerWinningOnTimeIsMissingMaterialAndUpdatePgnResultTag()) {
-            ChessGameManager.stopGame()
-            gameInProgress = ChessGameManager.isGameInProgress()
-            selectedHistoryNodeIndex = ChessGameManager.getSelectedHistoryNodeIndex()
-            whitePlayerType = ChessGameManager.getWhitePlayerType()
-            blackPlayerType = ChessGameManager.getBlackPlayerType()
+        gameLogicState.stopGameByTimeout(whiteTimeout)
+    }
 
-            val message = strings.drawOnTimeByInsufficientMaterial
-            coroutineScope.launch {
-                scaffoldState.snackbarHostState.showSnackbar(
-                    message, actionLabel = strings.close, duration = SnackbarDuration.Long
-                )
-            }
-        } else {
-            ChessGameManager.stopGame()
-            gameInProgress = ChessGameManager.isGameInProgress()
-            selectedHistoryNodeIndex = ChessGameManager.getSelectedHistoryNodeIndex()
-            whitePlayerType = ChessGameManager.getWhitePlayerType()
-            blackPlayerType = ChessGameManager.getBlackPlayerType()
-
-            val message = if (whiteTimeout) strings.blackWonOnTime else strings.whiteWonOnTime
-            coroutineScope.launch {
-                scaffoldState.snackbarHostState.showSnackbar(
-                    message, actionLabel = strings.close, duration = SnackbarDuration.Long
-                )
-            }
-        }
+    fun stopGame(shouldShowSnackBarMessage: Boolean = true) {
+        clockState.handleClockSelectedChange(false)
+        gameLogicState.stopGame(shouldShowSnackBarMessage)
     }
 
     fun onCheckmate(whitePlayer: Boolean) {
         clockState.handleClockSelectedChange(false)
-
-        whitePlayerType = ChessGameManager.getWhitePlayerType()
-        blackPlayerType = ChessGameManager.getBlackPlayerType()
-        coroutineScope.launch {
-            scaffoldState.snackbarHostState.showSnackbar(
-                if (whitePlayer) strings.whiteWonGame else strings.blackWonGame,
-                actionLabel = strings.close,
-                duration = SnackbarDuration.Long
-            )
-        }
+        gameLogicState.onCheckmate(whitePlayer)
     }
 
     fun onStalemate() {
         clockState.handleClockSelectedChange(false)
-
-        whitePlayerType = ChessGameManager.getWhitePlayerType()
-        blackPlayerType = ChessGameManager.getBlackPlayerType()
-        coroutineScope.launch {
-            scaffoldState.snackbarHostState.showSnackbar(
-                strings.drawByStalemate, actionLabel = strings.close, duration = SnackbarDuration.Long
-            )
-        }
+        gameLogicState.onStalemate()
     }
 
     fun onThreeFoldRepetition() {
         clockState.handleClockSelectedChange(false)
-
-        whitePlayerType = ChessGameManager.getWhitePlayerType()
-        blackPlayerType = ChessGameManager.getBlackPlayerType()
-        coroutineScope.launch {
-            scaffoldState.snackbarHostState.showSnackbar(
-                strings.drawByThreeFoldRepetition, actionLabel = strings.close, duration = SnackbarDuration.Long
-            )
-        }
+        gameLogicState.onThreeFoldRepetition()
     }
 
     fun onInsufficientMaterial() {
         clockState.handleClockSelectedChange(false)
-
-        whitePlayerType = ChessGameManager.getWhitePlayerType()
-        blackPlayerType = ChessGameManager.getBlackPlayerType()
-        coroutineScope.launch {
-            scaffoldState.snackbarHostState.showSnackbar(
-                strings.drawByInsufficientMaterial, actionLabel = strings.close, duration = SnackbarDuration.Long
-            )
-        }
+        gameLogicState.onInsufficientMaterial()
     }
 
     fun onFiftyMovesRuleDraw() {
         clockState.handleClockSelectedChange(false)
-
-        whitePlayerType = ChessGameManager.getWhitePlayerType()
-        blackPlayerType = ChessGameManager.getBlackPlayerType()
-        coroutineScope.launch {
-            scaffoldState.snackbarHostState.showSnackbar(
-                strings.drawByFiftyMovesRule, actionLabel = strings.close, duration = SnackbarDuration.Long
-            )
-        }
-    }
-
-    fun purposeStartNewGame() {
-        if (!ChessGameManager.isGameInProgress()) {
-            purposeStartGameDialogOpen = true
-        }
-    }
-
-    fun updateGameStatus() {
-        boardPieces = ChessGameManager.getPieces()
-        isWhiteTurn = ChessGameManager.isWhiteTurn()
-        gameInProgress = ChessGameManager.isGameInProgress()
-        whitePlayerType = ChessGameManager.getWhitePlayerType()
-        blackPlayerType = ChessGameManager.getBlackPlayerType()
-        lastMoveArrow = ChessGameManager.getLastMoveArrow()
-        historyElements = ChessGameManager.getHistoryElements()
-        selectedHistoryNodeIndex = ChessGameManager.getSelectedHistoryNodeIndex()
+        gameLogicState.onFiftyMovesRuleDraw()
     }
 
     fun startNewGame() {
         navigation.push(Screen.EditPosition {
-            updateGameStatus()
+            gameLogicState.updateGameStatus()
             if (clockState.clockSelected) {
                 clockState.updateClockValue()
                 clockState.startClock { whiteIsLooserSide ->
@@ -183,93 +88,18 @@ fun GamePage(
         })
     }
 
-    fun purposeStopGame() {
-        if (ChessGameManager.isGameInProgress()) {
-            purposeStopGameDialogOpen = true
-        }
-    }
-
-    fun stopGame(shouldShowSnackBarMessage: Boolean = true) {
-        clockState.handleClockSelectedChange(false)
-
-        ChessGameManager.stopGame()
-        gameInProgress = ChessGameManager.isGameInProgress()
-        selectedHistoryNodeIndex = ChessGameManager.getSelectedHistoryNodeIndex()
-        whitePlayerType = ChessGameManager.getWhitePlayerType()
-        blackPlayerType = ChessGameManager.getBlackPlayerType()
-        if (shouldShowSnackBarMessage) {
-            coroutineScope.launch {
-                scaffoldState.snackbarHostState.showSnackbar(
-                    strings.gameAborted, actionLabel = strings.close, duration = SnackbarDuration.Long
-                )
-            }
-        }
-    }
-
     fun onMovePlayed(isPendingPromotionMove: Boolean) {
         if (!isPendingPromotionMove) {
             clockState.updateClockTimeBasedOnIncrement()
         }
-        isWhiteTurn = ChessGameManager.isWhiteTurn()
-        boardPieces = ChessGameManager.getPieces()
-        pendingPromotion = ChessGameManager.getPendingPromotion()
-        pendingPromotionStartSquare = ChessGameManager.getPendingPromotionStartSquare()
-        pendingPromotionEndSquare = ChessGameManager.getPendingPromotionEndSquare()
-        lastMoveArrow = ChessGameManager.getLastMoveArrow()
-        gameInProgress = ChessGameManager.isGameInProgress()
-        whitePlayerType = ChessGameManager.getWhitePlayerType()
-        blackPlayerType = ChessGameManager.getBlackPlayerType()
-        selectedHistoryNodeIndex = ChessGameManager.getSelectedHistoryNodeIndex()
-    }
-
-    fun onPromotionCancelled() {
-        pendingPromotion = ChessGameManager.getPendingPromotion()
-        pendingPromotionStartSquare = ChessGameManager.getPendingPromotionStartSquare()
-        pendingPromotionEndSquare = ChessGameManager.getPendingPromotionEndSquare()
-    }
-
-    fun purposeSaveGameInPgnFile() {
-        if (gameInProgress) return
-        val folder = PreferencesManager.loadSavePgnFolder()
-        val fileChooser = if (folder.isNotEmpty()) JFileChooser(folder) else JFileChooser()
-        fileChooser.dialogTitle = strings.selectSavePgnPathDialogTitle
-        fileChooser.approveButtonText = strings.validate
-
-        val pgnFilter = FileNameExtensionFilter(strings.pgnFileType, "pgn")
-        val currentWindow = KeyboardFocusManager.getCurrentKeyboardFocusManager().activeWindow
-        fileChooser.addChoosableFileFilter(pgnFilter)
-        fileChooser.isAcceptAllFileFilterUsed = true
-        val actionResult = fileChooser.showSaveDialog(currentWindow)
-        if (actionResult == JFileChooser.APPROVE_OPTION) {
-            PreferencesManager.saveSavePgnFolder(fileChooser.currentDirectory.absolutePath)
-            val selectedFile = fileChooser.selectedFile
-            try {
-                ChessGameManager.exportAsPgn(selectedFile)
-                coroutineScope.launch {
-                    scaffoldState.snackbarHostState.showSnackbar(
-                        message = strings.pgnExported,
-                        actionLabel = strings.close,
-                        duration = SnackbarDuration.Long,
-                    )
-                }
-            } catch (ex: Exception) {
-                println(ex)
-                coroutineScope.launch {
-                    scaffoldState.snackbarHostState.showSnackbar(
-                        message = strings.failedSavingPgnFile,
-                        actionLabel = strings.close,
-                        duration = SnackbarDuration.Long,
-                    )
-                }
-            }
-        }
+        gameLogicState.updateGameStatus()
     }
 
     BoxWithConstraints {
         val isLandscape = maxWidth > maxHeight
         Scaffold(scaffoldState = scaffoldState, topBar = {
             TopAppBar(title = { Text(strings.gamePageTitle) }, actions = {
-                if (!gameInProgress) {
+                if (!gameLogicState.gameInProgress) {
                     IconButton(content = {
                         Image(
                             painter = painterResource("images/material_vectors/directions_run.svg"),
@@ -278,7 +108,7 @@ fun GamePage(
                             colorFilter = ColorFilter.tint(Color.White)
                         )
                     }, onClick = {
-                        purposeStartNewGame()
+                        gameLogicState.purposeStartNewGame()
                     })
                 }
                 IconButton(content = {
@@ -289,10 +119,10 @@ fun GamePage(
                         colorFilter = ColorFilter.tint(Color.White)
                     )
                 }, onClick = {
-                    boardReversed = !boardReversed
+                    gameLogicState.boardReversed = !gameLogicState.boardReversed
                 })
-                if (gameInProgress) {
-                    IconButton(::purposeStopGame) {
+                if (gameLogicState.gameInProgress) {
+                    IconButton({ gameLogicState.purposeStopGame() }) {
                         Image(
                             painter = painterResource("images/material_vectors/cancel.svg"),
                             contentDescription = strings.stopGame,
@@ -302,9 +132,9 @@ fun GamePage(
                     }
                 }
 
-                if (!gameInProgress) {
+                if (!gameLogicState.gameInProgress) {
                     IconButton({
-                        purposeSaveGameInPgnFile()
+                        gameLogicState.purposeSaveGameInPgnFile()
                     }) {
                         Image(
                             painter = painterResource("images/material_vectors/save.svg"),
@@ -323,30 +153,30 @@ fun GamePage(
                 Box {
                     if (isLandscape) {
                         val heightRatio =
-                            if (gameInProgress) 1.0f else 0.6f
+                            if (gameLogicState.gameInProgress) 1.0f else 0.6f
                         Row(
                             modifier = Modifier.fillMaxWidth().fillMaxHeight(heightRatio),
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             ChessBoardComponent(
-                                isWhiteTurn = isWhiteTurn,
-                                piecesValues = boardPieces,
-                                reversed = boardReversed,
-                                whitePlayerType = whitePlayerType,
-                                blackPlayerType = blackPlayerType,
-                                lastMoveArrow = lastMoveArrow,
-                                pendingPromotion = pendingPromotion,
-                                pendingPromotionStartSquare = pendingPromotionStartSquare,
-                                pendingPromotionEndSquare = pendingPromotionEndSquare,
-                                gameInProgress = gameInProgress,
+                                isWhiteTurn = gameLogicState.isWhiteTurn,
+                                piecesValues = gameLogicState.boardPieces,
+                                reversed = gameLogicState.boardReversed,
+                                whitePlayerType = gameLogicState.whitePlayerType,
+                                blackPlayerType = gameLogicState.blackPlayerType,
+                                lastMoveArrow = gameLogicState.lastMoveArrow,
+                                pendingPromotion = gameLogicState.pendingPromotion,
+                                pendingPromotionStartSquare = gameLogicState.pendingPromotionStartSquare,
+                                pendingPromotionEndSquare = gameLogicState.pendingPromotionEndSquare,
+                                gameInProgress = gameLogicState.gameInProgress,
                                 onCheckmate = ::onCheckmate,
                                 onStalemate = ::onStalemate,
                                 onFiftyMovesRuleDraw = ::onFiftyMovesRuleDraw,
                                 onThreeFoldRepetition = ::onThreeFoldRepetition,
                                 onInsufficientMaterial = ::onInsufficientMaterial,
-                                onMovePlayed = ::onMovePlayed,
-                                onPromotionCancelled = ::onPromotionCancelled,
+                                onMovePlayed = { onMovePlayed(it) },
+                                onPromotionCancelled = { gameLogicState.onPromotionCancelled() },
                             )
 
                             Column(
@@ -362,20 +192,17 @@ fun GamePage(
                                     )
                                 }
                                 HistoryComponent(
-                                    historyElements = historyElements,
-                                    selectedHistoryNodeIndex = selectedHistoryNodeIndex,
+                                    historyElements = gameLogicState.historyElements,
+                                    selectedHistoryNodeIndex = gameLogicState.selectedHistoryNodeIndex,
                                     onPositionSelected = {
-                                        isWhiteTurn = ChessGameManager.isWhiteTurn()
-                                        boardPieces = ChessGameManager.getPieces()
-                                        lastMoveArrow = ChessGameManager.getLastMoveArrow()
-                                        selectedHistoryNodeIndex = ChessGameManager.getSelectedHistoryNodeIndex()
+                                        gameLogicState.updateGameStatus()
                                     },
                                 )
                             }
                         }
                     } else {
                         val heightRatio =
-                            if (gameInProgress) 1.0f else 0.55f
+                            if (gameLogicState.gameInProgress) 1.0f else 0.55f
                         Column(
                             modifier = Modifier.fillMaxWidth().fillMaxHeight(heightRatio),
                             horizontalAlignment = Alignment.CenterHorizontally,
@@ -383,23 +210,23 @@ fun GamePage(
                         ) {
                             Column(modifier = Modifier.fillMaxHeight(0.6f)) {
                                 ChessBoardComponent(
-                                    isWhiteTurn = isWhiteTurn,
-                                    piecesValues = boardPieces,
-                                    reversed = boardReversed,
-                                    whitePlayerType = whitePlayerType,
-                                    blackPlayerType = blackPlayerType,
-                                    lastMoveArrow = lastMoveArrow,
-                                    pendingPromotion = pendingPromotion,
-                                    pendingPromotionStartSquare = pendingPromotionStartSquare,
-                                    pendingPromotionEndSquare = pendingPromotionEndSquare,
-                                    gameInProgress = gameInProgress,
+                                    isWhiteTurn = gameLogicState.isWhiteTurn,
+                                    piecesValues = gameLogicState.boardPieces,
+                                    reversed = gameLogicState.boardReversed,
+                                    whitePlayerType = gameLogicState.whitePlayerType,
+                                    blackPlayerType = gameLogicState.blackPlayerType,
+                                    lastMoveArrow = gameLogicState.lastMoveArrow,
+                                    pendingPromotion = gameLogicState.pendingPromotion,
+                                    pendingPromotionStartSquare = gameLogicState.pendingPromotionStartSquare,
+                                    pendingPromotionEndSquare = gameLogicState.pendingPromotionEndSquare,
+                                    gameInProgress = gameLogicState.gameInProgress,
                                     onCheckmate = ::onCheckmate,
                                     onStalemate = ::onStalemate,
                                     onFiftyMovesRuleDraw = ::onFiftyMovesRuleDraw,
                                     onThreeFoldRepetition = ::onThreeFoldRepetition,
                                     onInsufficientMaterial = ::onInsufficientMaterial,
-                                    onMovePlayed = ::onMovePlayed,
-                                    onPromotionCancelled = ::onPromotionCancelled,
+                                    onMovePlayed = { onMovePlayed(it) },
+                                    onPromotionCancelled = { gameLogicState.onPromotionCancelled() },
                                 )
                             }
 
@@ -416,13 +243,10 @@ fun GamePage(
                                     )
                                 }
                                 HistoryComponent(
-                                    historyElements = historyElements,
-                                    selectedHistoryNodeIndex = selectedHistoryNodeIndex,
+                                    historyElements = gameLogicState.historyElements,
+                                    selectedHistoryNodeIndex = gameLogicState.selectedHistoryNodeIndex,
                                     onPositionSelected = {
-                                        isWhiteTurn = ChessGameManager.isWhiteTurn()
-                                        boardPieces = ChessGameManager.getPieces()
-                                        lastMoveArrow = ChessGameManager.getLastMoveArrow()
-                                        selectedHistoryNodeIndex = ChessGameManager.getSelectedHistoryNodeIndex()
+                                        gameLogicState.updateGameStatus()
                                     },
                                 )
                             }
@@ -432,7 +256,7 @@ fun GamePage(
                 }
 
 
-                if (!gameInProgress) {
+                if (!gameLogicState.gameInProgress) {
 
                     // base clock options
 
@@ -474,10 +298,13 @@ fun GamePage(
                         Text("s")
 
                         Text(strings.timeIncrement, modifier = Modifier.padding(start = 10.dp))
-                        VerticalNumberPicker(value = clockState.whiteIncrementInSeconds, range = 0..59, onStateChanged = {
-                            clockState.whiteIncrementInSeconds = it
-                            clockState.updateClockValue()
-                        })
+                        VerticalNumberPicker(
+                            value = clockState.whiteIncrementInSeconds,
+                            range = 0..59,
+                            onStateChanged = {
+                                clockState.whiteIncrementInSeconds = it
+                                clockState.updateClockValue()
+                            })
                     }
 
                     // differential clock options
@@ -521,80 +348,83 @@ fun GamePage(
                             Text("s")
 
                             Text(strings.timeIncrement, modifier = Modifier.padding(start = 10.dp))
-                            VerticalNumberPicker(value = clockState.blackIncrementInSeconds, range = 0..59, onStateChanged = {
-                                clockState.blackIncrementInSeconds = it
-                                clockState.updateClockValue()
-                            })
+                            VerticalNumberPicker(
+                                value = clockState.blackIncrementInSeconds,
+                                range = 0..59,
+                                onStateChanged = {
+                                    clockState.blackIncrementInSeconds = it
+                                    clockState.updateClockValue()
+                                })
                         }
                     }
                 }
             }
         }
 
-        if (purposeStartGameDialogOpen) {
+        if (gameLogicState.purposeStartGameDialogOpen) {
             AlertDialog(onDismissRequest = {
-                purposeStartGameDialogOpen = false
+                gameLogicState.purposeStartGameDialogOpen = false
             }, title = {
                 Text(strings.confirmStartNewGameTitle)
             }, text = {
                 Text(strings.confirmStartNewGameMessage)
             }, confirmButton = {
                 Button({
-                    purposeStartGameDialogOpen = false
+                    gameLogicState.purposeStartGameDialogOpen = false
                     startNewGame()
                 }) {
                     Text(strings.validate)
                 }
             }, dismissButton = {
                 Button({
-                    purposeStartGameDialogOpen = false
+                    gameLogicState.purposeStartGameDialogOpen = false
                 }) {
                     Text(strings.cancel)
                 }
             })
         }
 
-        if (purposeStopGameDialogOpen) {
+        if (gameLogicState.purposeStopGameDialogOpen) {
             AlertDialog(onDismissRequest = {
-                purposeStopGameDialogOpen = false
+                gameLogicState.purposeStopGameDialogOpen = false
             }, title = {
                 Text(strings.purposeStopGameTitle)
             }, text = {
                 Text(strings.purposeStopGameMessage)
             }, confirmButton = {
                 Button({
-                    purposeStopGameDialogOpen = false
+                    gameLogicState.purposeStopGameDialogOpen = false
                     stopGame()
                 }) {
                     Text(strings.validate)
                 }
             }, dismissButton = {
                 Button({
-                    purposeStopGameDialogOpen = false
+                    gameLogicState.purposeStopGameDialogOpen = false
                 }) {
                     Text(strings.cancel)
                 }
             })
         }
 
-        if (confirmExitGameDialogOpen) {
+        if (gameLogicState.confirmExitGameDialogOpen) {
             AlertDialog(onDismissRequest = {
-                confirmExitGameDialogOpen = false
+                gameLogicState.confirmExitGameDialogOpen = false
             }, title = {
                 Text(strings.confirmExitGameTitle)
             }, text = {
                 Text(strings.confirmExitGameMessage)
             }, confirmButton = {
                 Button({
-                    confirmExitGameDialogOpen = false
-                    stopGame(shouldShowSnackBarMessage = false)
+                    gameLogicState.confirmExitGameDialogOpen = false
+                    gameLogicState.stopGame(shouldShowSnackBarMessage = false)
                     navigation.pop()
                 }) {
                     Text(strings.validate)
                 }
             }, dismissButton = {
                 Button({
-                    confirmExitGameDialogOpen = false
+                    gameLogicState.confirmExitGameDialogOpen = false
                 }) {
                     Text(strings.cancel)
                 }
