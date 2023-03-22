@@ -41,34 +41,64 @@ suspend fun stopGameByTimeout(
 fun stopGame(
     shouldShowSnackBarMessage: Boolean = true,
     clockState: GamePageClockState,
-    gameLogicState: GamePageLogicState
+    gameLogicState: GamePageLogicState,
+    coroutineScope: CoroutineScope,
 ) {
-    clockState.handleClockSelectedChange(false)
+    coroutineScope.launch {
+        clockState.stopClock()
+    }
     gameLogicState.stopGame(shouldShowSnackBarMessage)
 }
 
-fun onCheckmate(whitePlayer: Boolean, clockState: GamePageClockState, gameLogicState: GamePageLogicState) {
-    clockState.handleClockSelectedChange(false)
+fun onCheckmate(
+    whitePlayer: Boolean,
+    clockState: GamePageClockState,
+    gameLogicState: GamePageLogicState,
+    coroutineScope: CoroutineScope
+) {
+    coroutineScope.launch {
+        clockState.stopClock()
+    }
     gameLogicState.onCheckmate(whitePlayer)
 }
 
-fun onStalemate(clockState: GamePageClockState, gameLogicState: GamePageLogicState) {
-    clockState.handleClockSelectedChange(false)
+fun onStalemate(clockState: GamePageClockState, gameLogicState: GamePageLogicState, coroutineScope: CoroutineScope) {
+    coroutineScope.launch {
+        clockState.stopClock()
+    }
     gameLogicState.onStalemate()
 }
 
-fun onThreeFoldRepetition(clockState: GamePageClockState, gameLogicState: GamePageLogicState) {
-    clockState.handleClockSelectedChange(false)
+fun onThreeFoldRepetition(
+    clockState: GamePageClockState,
+    gameLogicState: GamePageLogicState,
+    coroutineScope: CoroutineScope
+) {
+    coroutineScope.launch {
+        clockState.stopClock()
+    }
     gameLogicState.onThreeFoldRepetition()
 }
 
-fun onInsufficientMaterial(clockState: GamePageClockState, gameLogicState: GamePageLogicState) {
-    clockState.handleClockSelectedChange(false)
+fun onInsufficientMaterial(
+    clockState: GamePageClockState,
+    gameLogicState: GamePageLogicState,
+    coroutineScope: CoroutineScope
+) {
+    coroutineScope.launch {
+        clockState.stopClock()
+    }
     gameLogicState.onInsufficientMaterial()
 }
 
-fun onFiftyMovesRuleDraw(clockState: GamePageClockState, gameLogicState: GamePageLogicState) {
-    clockState.handleClockSelectedChange(false)
+fun onFiftyMovesRuleDraw(
+    clockState: GamePageClockState,
+    gameLogicState: GamePageLogicState,
+    coroutineScope: CoroutineScope
+) {
+    coroutineScope.launch {
+        clockState.stopClock()
+    }
     gameLogicState.onFiftyMovesRuleDraw()
 }
 
@@ -99,13 +129,12 @@ fun onMovePlayed(isPendingPromotionMove: Boolean, clockState: GamePageClockState
 @Composable
 fun GamePage(
     navigation: StackNavigation<Screen>,
-    clockState: GamePageClockState = rememberSaveableGamePageClockState(),
-    gameLogicState: GamePageLogicState = rememberSaveableGamePageLogicState(),
+    coroutineScope: CoroutineScope = rememberCoroutineScope(),
 ) {
     val scaffoldState = rememberScaffoldState()
-    val coroutineScope = rememberCoroutineScope()
-
     val strings = LocalStrings.current
+    val clockState = rememberSaveableGamePageClockState(coroutineScope = coroutineScope)
+    val gameLogicState = rememberSaveableGamePageLogicState(coroutineScope = coroutineScope)
 
     BoxWithConstraints {
         val isLandscape = maxWidth > maxHeight
@@ -182,11 +211,29 @@ fun GamePage(
                                 pendingPromotionStartSquare = gameLogicState.pendingPromotionStartSquare,
                                 pendingPromotionEndSquare = gameLogicState.pendingPromotionEndSquare,
                                 gameInProgress = gameLogicState.gameInProgress,
-                                onCheckmate = { onCheckmate(it, clockState, gameLogicState) },
-                                onStalemate = { onStalemate(clockState, gameLogicState) },
-                                onFiftyMovesRuleDraw = { onFiftyMovesRuleDraw(clockState, gameLogicState) },
-                                onThreeFoldRepetition = { onThreeFoldRepetition(clockState, gameLogicState) },
-                                onInsufficientMaterial = { onInsufficientMaterial(clockState, gameLogicState) },
+                                onCheckmate = { onCheckmate(it, clockState, gameLogicState, coroutineScope) },
+                                onStalemate = { onStalemate(clockState, gameLogicState, coroutineScope) },
+                                onFiftyMovesRuleDraw = {
+                                    onFiftyMovesRuleDraw(
+                                        clockState,
+                                        gameLogicState,
+                                        coroutineScope
+                                    )
+                                },
+                                onThreeFoldRepetition = {
+                                    onThreeFoldRepetition(
+                                        clockState,
+                                        gameLogicState,
+                                        coroutineScope
+                                    )
+                                },
+                                onInsufficientMaterial = {
+                                    onInsufficientMaterial(
+                                        clockState,
+                                        gameLogicState,
+                                        coroutineScope
+                                    )
+                                },
                                 onMovePlayed = { onMovePlayed(it, clockState, gameLogicState) },
                                 onPromotionCancelled = { gameLogicState.onPromotionCancelled() },
                             )
@@ -232,14 +279,27 @@ fun GamePage(
                                     pendingPromotionStartSquare = gameLogicState.pendingPromotionStartSquare,
                                     pendingPromotionEndSquare = gameLogicState.pendingPromotionEndSquare,
                                     gameInProgress = gameLogicState.gameInProgress,
-                                    onCheckmate = { onCheckmate(it, clockState, gameLogicState) },
-                                    onStalemate = { onStalemate(clockState, gameLogicState) },
-                                    onFiftyMovesRuleDraw = { onFiftyMovesRuleDraw(clockState, gameLogicState) },
-                                    onThreeFoldRepetition = { onThreeFoldRepetition(clockState, gameLogicState) },
+                                    onCheckmate = { onCheckmate(it, clockState, gameLogicState, coroutineScope) },
+                                    onStalemate = { onStalemate(clockState, gameLogicState, coroutineScope) },
+                                    onFiftyMovesRuleDraw = {
+                                        onFiftyMovesRuleDraw(
+                                            clockState,
+                                            gameLogicState,
+                                            coroutineScope
+                                        )
+                                    },
+                                    onThreeFoldRepetition = {
+                                        onThreeFoldRepetition(
+                                            clockState,
+                                            gameLogicState,
+                                            coroutineScope
+                                        )
+                                    },
                                     onInsufficientMaterial = {
                                         onInsufficientMaterial(
                                             clockState,
-                                            gameLogicState
+                                            gameLogicState,
+                                            coroutineScope
                                         )
                                     },
                                     onMovePlayed = { onMovePlayed(it, clockState, gameLogicState) },
@@ -411,7 +471,7 @@ fun GamePage(
             }, confirmButton = {
                 Button({
                     gameLogicState.purposeStopGameDialogOpen = false
-                    stopGame(shouldShowSnackBarMessage = true, clockState, gameLogicState)
+                    stopGame(shouldShowSnackBarMessage = true, clockState, gameLogicState, coroutineScope)
                 }) {
                     Text(strings.validate)
                 }

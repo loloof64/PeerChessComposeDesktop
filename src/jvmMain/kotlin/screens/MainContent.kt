@@ -2,6 +2,7 @@ package screens
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.plus
@@ -17,6 +18,7 @@ import navigator.ChildStack
 @Composable
 fun MainContent() {
     val navigation = remember { StackNavigation<Screen>() }
+    val coroutineScope = rememberCoroutineScope()
 
     ChildStack(
         source = navigation,
@@ -30,6 +32,7 @@ fun MainContent() {
 
             is Screen.Game -> GamePage(
                 navigation = navigation,
+                coroutineScope = coroutineScope,
             )
 
             is Screen.EditPosition -> EditPositionPage(

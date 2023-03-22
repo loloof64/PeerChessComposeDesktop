@@ -18,11 +18,12 @@ import javax.swing.filechooser.FileNameExtensionFilter
 @Composable
 fun rememberSaveableGamePageClockState(
     coroutineScope: CoroutineScope = rememberCoroutineScope(),
-) : GamePageClockState {
- return rememberSaveable(coroutineScope) {
-     GamePageClockState(coroutineScope)
- }
+): GamePageClockState {
+    return rememberSaveable(coroutineScope) {
+        GamePageClockState(coroutineScope)
+    }
 }
+
 @Stable
 class GamePageClockState(
     private val coroutineScope: CoroutineScope,
@@ -40,6 +41,7 @@ class GamePageClockState(
     var clockJob by mutableStateOf<Job?>(null)
 
     /**
+     * startClock.
      * stoppingGameCallback : what to do whenever a stop game by timeout request is emitted.
      * The parameter is a boolean indicating if white has lost, or if it is black that lost the game.
      */
@@ -60,6 +62,11 @@ class GamePageClockState(
                 }
             }
         }
+    }
+
+    suspend fun stopClock() {
+        clockJob?.cancel()
+        clockJob?.join()
     }
 
     fun updateClockValue() {
@@ -140,7 +147,7 @@ class GamePageClockState(
 fun rememberSaveableGamePageLogicState(
     coroutineScope: CoroutineScope = rememberCoroutineScope(),
     scaffoldState: ScaffoldState = rememberScaffoldState(),
-) : GamePageLogicState {
+): GamePageLogicState {
     val strings = LocalStrings.current
     return rememberSaveable(coroutineScope, scaffoldState) {
         GamePageLogicState(coroutineScope, scaffoldState, strings)
