@@ -25,6 +25,76 @@ import logic.ChessGameManager
 import java.text.SimpleDateFormat
 import java.util.*
 
+suspend fun stopGameByTimeout(
+    whiteTimeout: Boolean,
+    clockState: GamePageClockState,
+    gameLogicState: GamePageLogicState
+) {
+    clockState.clockJob?.cancel()
+    clockState.clockJob?.join()
+    clockState.clockJob = null
+    clockState.clockActive = false
+
+    gameLogicState.stopGameByTimeout(whiteTimeout)
+}
+
+fun stopGame(
+    shouldShowSnackBarMessage: Boolean = true,
+    clockState: GamePageClockState,
+    gameLogicState: GamePageLogicState
+) {
+    clockState.handleClockSelectedChange(false)
+    gameLogicState.stopGame(shouldShowSnackBarMessage)
+}
+
+fun onCheckmate(whitePlayer: Boolean, clockState: GamePageClockState, gameLogicState: GamePageLogicState) {
+    clockState.handleClockSelectedChange(false)
+    gameLogicState.onCheckmate(whitePlayer)
+}
+
+fun onStalemate(clockState: GamePageClockState, gameLogicState: GamePageLogicState) {
+    clockState.handleClockSelectedChange(false)
+    gameLogicState.onStalemate()
+}
+
+fun onThreeFoldRepetition(clockState: GamePageClockState, gameLogicState: GamePageLogicState) {
+    clockState.handleClockSelectedChange(false)
+    gameLogicState.onThreeFoldRepetition()
+}
+
+fun onInsufficientMaterial(clockState: GamePageClockState, gameLogicState: GamePageLogicState) {
+    clockState.handleClockSelectedChange(false)
+    gameLogicState.onInsufficientMaterial()
+}
+
+fun onFiftyMovesRuleDraw(clockState: GamePageClockState, gameLogicState: GamePageLogicState) {
+    clockState.handleClockSelectedChange(false)
+    gameLogicState.onFiftyMovesRuleDraw()
+}
+
+fun startNewGame(
+    clockState: GamePageClockState,
+    gameLogicState: GamePageLogicState,
+    navigation: StackNavigation<Screen>, coroutineScope: CoroutineScope,
+) {
+    navigation.push(Screen.EditPosition {
+        gameLogicState.updateGameStatus()
+        if (clockState.clockSelected) {
+            clockState.updateClockValue()
+            clockState.startClock { whiteIsLooserSide ->
+                coroutineScope.launch { stopGameByTimeout(whiteIsLooserSide, clockState, gameLogicState) }
+            }
+        }
+    })
+}
+
+fun onMovePlayed(isPendingPromotionMove: Boolean, clockState: GamePageClockState, gameLogicState: GamePageLogicState) {
+    if (!isPendingPromotionMove) {
+        clockState.updateClockTimeBasedOnIncrement()
+    }
+    gameLogicState.updateGameStatus()
+}
+
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun GamePage(
@@ -36,64 +106,6 @@ fun GamePage(
     val coroutineScope = rememberCoroutineScope()
 
     val strings = LocalStrings.current
-
-    suspend fun stopGameByTimeout(whiteTimeout: Boolean) {
-        clockState.clockJob?.cancel()
-        clockState.clockJob?.join()
-        clockState.clockJob = null
-        clockState.clockActive = false
-
-        gameLogicState.stopGameByTimeout(whiteTimeout)
-    }
-
-    fun stopGame(shouldShowSnackBarMessage: Boolean = true) {
-        clockState.handleClockSelectedChange(false)
-        gameLogicState.stopGame(shouldShowSnackBarMessage)
-    }
-
-    fun onCheckmate(whitePlayer: Boolean) {
-        clockState.handleClockSelectedChange(false)
-        gameLogicState.onCheckmate(whitePlayer)
-    }
-
-    fun onStalemate() {
-        clockState.handleClockSelectedChange(false)
-        gameLogicState.onStalemate()
-    }
-
-    fun onThreeFoldRepetition() {
-        clockState.handleClockSelectedChange(false)
-        gameLogicState.onThreeFoldRepetition()
-    }
-
-    fun onInsufficientMaterial() {
-        clockState.handleClockSelectedChange(false)
-        gameLogicState.onInsufficientMaterial()
-    }
-
-    fun onFiftyMovesRuleDraw() {
-        clockState.handleClockSelectedChange(false)
-        gameLogicState.onFiftyMovesRuleDraw()
-    }
-
-    fun startNewGame() {
-        navigation.push(Screen.EditPosition {
-            gameLogicState.updateGameStatus()
-            if (clockState.clockSelected) {
-                clockState.updateClockValue()
-                clockState.startClock { whiteIsLooserSide ->
-                    coroutineScope.launch { stopGameByTimeout(whiteIsLooserSide) }
-                }
-            }
-        })
-    }
-
-    fun onMovePlayed(isPendingPromotionMove: Boolean) {
-        if (!isPendingPromotionMove) {
-            clockState.updateClockTimeBasedOnIncrement()
-        }
-        gameLogicState.updateGameStatus()
-    }
 
     BoxWithConstraints {
         val isLandscape = maxWidth > maxHeight
@@ -170,12 +182,12 @@ fun GamePage(
                                 pendingPromotionStartSquare = gameLogicState.pendingPromotionStartSquare,
                                 pendingPromotionEndSquare = gameLogicState.pendingPromotionEndSquare,
                                 gameInProgress = gameLogicState.gameInProgress,
-                                onCheckmate = ::onCheckmate,
-                                onStalemate = ::onStalemate,
-                                onFiftyMovesRuleDraw = ::onFiftyMovesRuleDraw,
-                                onThreeFoldRepetition = ::onThreeFoldRepetition,
-                                onInsufficientMaterial = ::onInsufficientMaterial,
-                                onMovePlayed = { onMovePlayed(it) },
+                                onCheckmate = { onCheckmate(it, clockState, gameLogicState) },
+                                onStalemate = { onStalemate(clockState, gameLogicState) },
+                                onFiftyMovesRuleDraw = { onFiftyMovesRuleDraw(clockState, gameLogicState) },
+                                onThreeFoldRepetition = { onThreeFoldRepetition(clockState, gameLogicState) },
+                                onInsufficientMaterial = { onInsufficientMaterial(clockState, gameLogicState) },
+                                onMovePlayed = { onMovePlayed(it, clockState, gameLogicState) },
                                 onPromotionCancelled = { gameLogicState.onPromotionCancelled() },
                             )
 
@@ -220,12 +232,17 @@ fun GamePage(
                                     pendingPromotionStartSquare = gameLogicState.pendingPromotionStartSquare,
                                     pendingPromotionEndSquare = gameLogicState.pendingPromotionEndSquare,
                                     gameInProgress = gameLogicState.gameInProgress,
-                                    onCheckmate = ::onCheckmate,
-                                    onStalemate = ::onStalemate,
-                                    onFiftyMovesRuleDraw = ::onFiftyMovesRuleDraw,
-                                    onThreeFoldRepetition = ::onThreeFoldRepetition,
-                                    onInsufficientMaterial = ::onInsufficientMaterial,
-                                    onMovePlayed = { onMovePlayed(it) },
+                                    onCheckmate = { onCheckmate(it, clockState, gameLogicState) },
+                                    onStalemate = { onStalemate(clockState, gameLogicState) },
+                                    onFiftyMovesRuleDraw = { onFiftyMovesRuleDraw(clockState, gameLogicState) },
+                                    onThreeFoldRepetition = { onThreeFoldRepetition(clockState, gameLogicState) },
+                                    onInsufficientMaterial = {
+                                        onInsufficientMaterial(
+                                            clockState,
+                                            gameLogicState
+                                        )
+                                    },
+                                    onMovePlayed = { onMovePlayed(it, clockState, gameLogicState) },
                                     onPromotionCancelled = { gameLogicState.onPromotionCancelled() },
                                 )
                             }
@@ -371,7 +388,7 @@ fun GamePage(
             }, confirmButton = {
                 Button({
                     gameLogicState.purposeStartGameDialogOpen = false
-                    startNewGame()
+                    startNewGame(clockState, gameLogicState, navigation, coroutineScope)
                 }) {
                     Text(strings.validate)
                 }
@@ -394,7 +411,7 @@ fun GamePage(
             }, confirmButton = {
                 Button({
                     gameLogicState.purposeStopGameDialogOpen = false
-                    stopGame()
+                    stopGame(shouldShowSnackBarMessage = true, clockState, gameLogicState)
                 }) {
                     Text(strings.validate)
                 }
