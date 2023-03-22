@@ -34,6 +34,7 @@ import javax.swing.filechooser.FileNameExtensionFilter
 @Composable
 fun GamePage(
     navigation: StackNavigation<Screen>,
+    clockState: GamePageClockState = rememberGamePageClockState()
 ) {
     val scaffoldState = rememberScaffoldState()
     val coroutineScope = rememberCoroutineScope()
@@ -56,23 +57,11 @@ fun GamePage(
     var blackPlayerType by rememberSaveable { mutableStateOf(ChessGameManager.getBlackPlayerType()) }
 
 
-    var whiteTimeInDeciSeconds by rememberSaveable { mutableStateOf(0) }
-    var blackTimeInDeciSeconds by rememberSaveable { mutableStateOf(0) }
-    var whiteIncrementInSeconds by rememberSaveable { mutableStateOf(0) }
-    var blackIncrementInSeconds by rememberSaveable { mutableStateOf(0) }
-    var whiteTimeActive by rememberSaveable { mutableStateOf(true) }
-    var clockSelected by rememberSaveable { mutableStateOf(false) }
-    var clockActive by rememberSaveable { mutableStateOf(false) }
-    var whiteAllocatedTimeInDeciSeconds by rememberSaveable { mutableStateOf(600) }
-    var blackAllocatedTimeInDeciSeconds by rememberSaveable { mutableStateOf(0) }
-    var differentialClockActive by rememberSaveable { mutableStateOf(false) }
-
-    var clockJob by rememberSaveable { mutableStateOf<Job?>(null) }
-
-    fun stopGameByTimeout(whiteTimeout: Boolean) {
-        clockJob?.cancel()
-        clockJob = null
-        clockActive = false
+    suspend fun stopGameByTimeout(whiteTimeout: Boolean) {
+        clockState.clockJob?.cancel()
+        clockState.clockJob?.join()
+        clockState.clockJob = null
+        clockState.clockActive = false
 
         if (ChessGameManager.checkIfPlayerWinningOnTimeIsMissingMaterialAndUpdatePgnResultTag()) {
             ChessGameManager.stopGame()
@@ -103,42 +92,8 @@ fun GamePage(
         }
     }
 
-    fun startClock() {
-        clockJob = coroutineScope.launch {
-            while (isActive) {
-                delay(100)
-                if (whiteTimeActive) {
-                    whiteTimeInDeciSeconds--
-                    if (whiteTimeInDeciSeconds <= 0) {
-                        stopGameByTimeout(true)
-                    }
-                } else {
-                    blackTimeInDeciSeconds--
-                    if (blackTimeInDeciSeconds <= 0) {
-                        stopGameByTimeout(false)
-                    }
-                }
-            }
-        }
-    }
-
-    fun updateClockValue() {
-        whiteTimeInDeciSeconds = whiteAllocatedTimeInDeciSeconds + 10 * whiteIncrementInSeconds
-        blackTimeInDeciSeconds =
-            if (differentialClockActive) blackAllocatedTimeInDeciSeconds + 10 * blackIncrementInSeconds else whiteTimeInDeciSeconds
-        blackIncrementInSeconds = if (differentialClockActive) blackIncrementInSeconds else whiteIncrementInSeconds
-    }
-
-    fun handleDifferentialClockActiveChange(newState: Boolean) {
-        differentialClockActive = newState
-    }
-
-    fun handleClockSelectedChange(newState: Boolean) {
-        clockSelected = newState
-    }
-
     fun onCheckmate(whitePlayer: Boolean) {
-        handleClockSelectedChange(false)
+        clockState.handleClockSelectedChange(false)
 
         whitePlayerType = ChessGameManager.getWhitePlayerType()
         blackPlayerType = ChessGameManager.getBlackPlayerType()
@@ -152,7 +107,7 @@ fun GamePage(
     }
 
     fun onStalemate() {
-        handleClockSelectedChange(false)
+        clockState.handleClockSelectedChange(false)
 
         whitePlayerType = ChessGameManager.getWhitePlayerType()
         blackPlayerType = ChessGameManager.getBlackPlayerType()
@@ -164,7 +119,7 @@ fun GamePage(
     }
 
     fun onThreeFoldRepetition() {
-        handleClockSelectedChange(false)
+        clockState.handleClockSelectedChange(false)
 
         whitePlayerType = ChessGameManager.getWhitePlayerType()
         blackPlayerType = ChessGameManager.getBlackPlayerType()
@@ -176,7 +131,7 @@ fun GamePage(
     }
 
     fun onInsufficientMaterial() {
-        handleClockSelectedChange(false)
+        clockState.handleClockSelectedChange(false)
 
         whitePlayerType = ChessGameManager.getWhitePlayerType()
         blackPlayerType = ChessGameManager.getBlackPlayerType()
@@ -188,7 +143,7 @@ fun GamePage(
     }
 
     fun onFiftyMovesRuleDraw() {
-        handleClockSelectedChange(false)
+        clockState.handleClockSelectedChange(false)
 
         whitePlayerType = ChessGameManager.getWhitePlayerType()
         blackPlayerType = ChessGameManager.getBlackPlayerType()
@@ -219,9 +174,11 @@ fun GamePage(
     fun startNewGame() {
         navigation.push(Screen.EditPosition {
             updateGameStatus()
-            if (clockSelected) {
-                updateClockValue()
-                startClock()
+            if (clockState.clockSelected) {
+                clockState.updateClockValue()
+                clockState.startClock { whiteIsLooserSide ->
+                    coroutineScope.launch { stopGameByTimeout(whiteIsLooserSide) }
+                }
             }
         })
     }
@@ -233,7 +190,7 @@ fun GamePage(
     }
 
     fun stopGame(shouldShowSnackBarMessage: Boolean = true) {
-        handleClockSelectedChange(false)
+        clockState.handleClockSelectedChange(false)
 
         ChessGameManager.stopGame()
         gameInProgress = ChessGameManager.isGameInProgress()
@@ -251,12 +208,7 @@ fun GamePage(
 
     fun onMovePlayed(isPendingPromotionMove: Boolean) {
         if (!isPendingPromotionMove) {
-            whiteTimeActive = !whiteTimeActive
-            if (whiteTimeActive) {
-                blackTimeInDeciSeconds += blackIncrementInSeconds * 10
-            } else {
-                whiteTimeInDeciSeconds += whiteIncrementInSeconds * 10
-            }
+            clockState.updateClockTimeBasedOnIncrement()
         }
         isWhiteTurn = ChessGameManager.isWhiteTurn()
         boardPieces = ChessGameManager.getPieces()
@@ -274,55 +226,6 @@ fun GamePage(
         pendingPromotion = ChessGameManager.getPendingPromotion()
         pendingPromotionStartSquare = ChessGameManager.getPendingPromotionStartSquare()
         pendingPromotionEndSquare = ChessGameManager.getPendingPromotionEndSquare()
-    }
-
-    fun hoursFor(timeInDeciSeconds: Int): Int {
-        val timeSeconds = timeInDeciSeconds / 10
-        return timeSeconds / 3600
-    }
-
-    fun minutesFor(timeInDeciSeconds: Int): Int {
-        val timeSeconds = timeInDeciSeconds / 10
-        var result = timeSeconds % 3600
-        result /= 60
-        return result
-    }
-
-    fun secondsFor(timeInDeciSeconds: Int): Int {
-        val timeSeconds = timeInDeciSeconds / 10
-        var result = timeSeconds % 3600
-        result %= 60
-        return result
-    }
-
-    fun updateAllocatedHours(newHoursCount: Int, black: Boolean = false) {
-        val currentAllocatedMinutes =
-            minutesFor(if (black) blackAllocatedTimeInDeciSeconds else whiteAllocatedTimeInDeciSeconds)
-        val currentAllocatedSeconds =
-            secondsFor(if (black) blackAllocatedTimeInDeciSeconds else whiteAllocatedTimeInDeciSeconds)
-        val newValue = newHoursCount * 3600_0 + currentAllocatedMinutes * 60_0 + currentAllocatedSeconds * 10
-        if (black) blackAllocatedTimeInDeciSeconds = newValue
-        else whiteAllocatedTimeInDeciSeconds = newValue
-    }
-
-    fun updateAllocatedMinutes(newMinutesCount: Int, black: Boolean = false) {
-        val currentAllocatedHours =
-            hoursFor(if (black) blackAllocatedTimeInDeciSeconds else whiteAllocatedTimeInDeciSeconds)
-        val currentAllocatedSeconds =
-            secondsFor(if (black) blackAllocatedTimeInDeciSeconds else whiteAllocatedTimeInDeciSeconds)
-        val newValue = currentAllocatedHours * 3600_0 + newMinutesCount * 60_0 + currentAllocatedSeconds * 10
-        if (black) blackAllocatedTimeInDeciSeconds = newValue
-        else whiteAllocatedTimeInDeciSeconds = newValue
-    }
-
-    fun updateAllocatedSeconds(newSecondsCount: Int, black: Boolean = false) {
-        val currentAllocatedHours =
-            hoursFor(if (black) blackAllocatedTimeInDeciSeconds else whiteAllocatedTimeInDeciSeconds)
-        val currentAllocatedMinutes =
-            minutesFor(if (black) blackAllocatedTimeInDeciSeconds else whiteAllocatedTimeInDeciSeconds)
-        val newValue = currentAllocatedHours * 3600_0 + currentAllocatedMinutes * 60_0 + newSecondsCount * 10
-        if (black) blackAllocatedTimeInDeciSeconds = newValue
-        else whiteAllocatedTimeInDeciSeconds = newValue
     }
 
     fun purposeSaveGameInPgnFile() {
@@ -451,11 +354,11 @@ fun GamePage(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Top,
                             ) {
-                                if (clockSelected) {
+                                if (clockState.clockSelected) {
                                     ClockComponent(
-                                        whiteTimeInDeciSeconds = whiteTimeInDeciSeconds,
-                                        blackTimeInDeciSeconds = blackTimeInDeciSeconds,
-                                        whiteTimeActive = whiteTimeActive,
+                                        whiteTimeInDeciSeconds = clockState.whiteTimeInDeciSeconds,
+                                        blackTimeInDeciSeconds = clockState.blackTimeInDeciSeconds,
+                                        whiteTimeActive = clockState.whiteTimeActive,
                                     )
                                 }
                                 HistoryComponent(
@@ -505,11 +408,11 @@ fun GamePage(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Top,
                             ) {
-                                if (clockSelected) {
+                                if (clockState.clockSelected) {
                                     ClockComponent(
-                                        whiteTimeInDeciSeconds = whiteTimeInDeciSeconds,
-                                        blackTimeInDeciSeconds = blackTimeInDeciSeconds,
-                                        whiteTimeActive = whiteTimeActive,
+                                        whiteTimeInDeciSeconds = clockState.whiteTimeInDeciSeconds,
+                                        blackTimeInDeciSeconds = clockState.blackTimeInDeciSeconds,
+                                        whiteTimeActive = clockState.whiteTimeActive,
                                     )
                                 }
                                 HistoryComponent(
@@ -538,89 +441,89 @@ fun GamePage(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Checkbox(
-                            checked = clockSelected,
+                            checked = clockState.clockSelected,
                             onCheckedChange = {
-                                handleClockSelectedChange(it)
-                                updateClockValue()
+                                clockState.handleClockSelectedChange(it)
+                                clockState.updateClockValue()
                             },
                         )
                         Text(strings.timedGame)
 
-                        VerticalNumberPicker(value = hoursFor(whiteAllocatedTimeInDeciSeconds),
+                        VerticalNumberPicker(value = clockState.hoursFor(clockState.whiteAllocatedTimeInDeciSeconds),
                             range = 0..3,
                             onStateChanged = {
-                                updateAllocatedHours(it)
-                                updateClockValue()
+                                clockState.updateAllocatedHours(it)
+                                clockState.updateClockValue()
                             })
                         Text("h")
 
-                        VerticalNumberPicker(value = minutesFor(whiteAllocatedTimeInDeciSeconds),
+                        VerticalNumberPicker(value = clockState.minutesFor(clockState.whiteAllocatedTimeInDeciSeconds),
                             range = 0..59,
                             onStateChanged = {
-                                updateAllocatedMinutes(it)
-                                updateClockValue()
+                                clockState.updateAllocatedMinutes(it)
+                                clockState.updateClockValue()
                             })
                         Text("m")
 
-                        VerticalNumberPicker(value = secondsFor(whiteAllocatedTimeInDeciSeconds),
+                        VerticalNumberPicker(value = clockState.secondsFor(clockState.whiteAllocatedTimeInDeciSeconds),
                             range = 0..59,
                             onStateChanged = {
-                                updateAllocatedSeconds(it)
-                                updateClockValue()
+                                clockState.updateAllocatedSeconds(it)
+                                clockState.updateClockValue()
                             })
                         Text("s")
 
                         Text(strings.timeIncrement, modifier = Modifier.padding(start = 10.dp))
-                        VerticalNumberPicker(value = whiteIncrementInSeconds, range = 0..59, onStateChanged = {
-                            whiteIncrementInSeconds = it
-                            updateClockValue()
+                        VerticalNumberPicker(value = clockState.whiteIncrementInSeconds, range = 0..59, onStateChanged = {
+                            clockState.whiteIncrementInSeconds = it
+                            clockState.updateClockValue()
                         })
                     }
 
                     // differential clock options
 
-                    if (clockSelected) {
+                    if (clockState.clockSelected) {
                         Row(
                             horizontalArrangement = Arrangement.Start,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Checkbox(
-                                checked = differentialClockActive,
+                                checked = clockState.differentialClockActive,
                                 onCheckedChange = {
-                                    handleDifferentialClockActiveChange(it)
-                                    updateClockValue()
+                                    clockState.handleDifferentialClockActiveChange(it)
+                                    clockState.updateClockValue()
                                 },
                             )
                             Text(strings.differentTimeForBlack)
 
-                            VerticalNumberPicker(value = hoursFor(blackAllocatedTimeInDeciSeconds),
+                            VerticalNumberPicker(value = clockState.hoursFor(clockState.blackAllocatedTimeInDeciSeconds),
                                 range = 0..3,
                                 onStateChanged = {
-                                    updateAllocatedHours(it, black = true)
-                                    updateClockValue()
+                                    clockState.updateAllocatedHours(it, black = true)
+                                    clockState.updateClockValue()
                                 })
                             Text("h")
 
-                            VerticalNumberPicker(value = minutesFor(blackAllocatedTimeInDeciSeconds),
+                            VerticalNumberPicker(value = clockState.minutesFor(clockState.blackAllocatedTimeInDeciSeconds),
                                 range = 0..59,
                                 onStateChanged = {
-                                    updateAllocatedMinutes(it, black = true)
-                                    updateClockValue()
+                                    clockState.updateAllocatedMinutes(it, black = true)
+                                    clockState.updateClockValue()
                                 })
                             Text("m")
 
-                            VerticalNumberPicker(value = secondsFor(blackAllocatedTimeInDeciSeconds),
+                            VerticalNumberPicker(value = clockState.secondsFor(clockState.blackAllocatedTimeInDeciSeconds),
                                 range = 0..59,
                                 onStateChanged = {
-                                    updateAllocatedSeconds(it, black = true)
-                                    updateClockValue()
+                                    clockState.updateAllocatedSeconds(it, black = true)
+                                    clockState.updateClockValue()
                                 })
                             Text("s")
 
                             Text(strings.timeIncrement, modifier = Modifier.padding(start = 10.dp))
-                            VerticalNumberPicker(value = blackIncrementInSeconds, range = 0..59, onStateChanged = {
-                                blackIncrementInSeconds = it
-                                updateClockValue()
+                            VerticalNumberPicker(value = clockState.blackIncrementInSeconds, range = 0..59, onStateChanged = {
+                                clockState.blackIncrementInSeconds = it
+                                clockState.updateClockValue()
                             })
                         }
                     }
