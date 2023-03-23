@@ -250,6 +250,7 @@ class GamePageLogicState(
         gameInProgress = ChessGameManager.isGameInProgress()
         whitePlayerType = ChessGameManager.getWhitePlayerType()
         blackPlayerType = ChessGameManager.getBlackPlayerType()
+        historyElements = ChessGameManager.getHistoryElements()
         selectedHistoryNodeIndex = ChessGameManager.getSelectedHistoryNodeIndex()
     }
 
