@@ -1,8 +1,5 @@
 package screens
 
-import androidx.compose.material.ScaffoldState
-import androidx.compose.material.SnackbarDuration
-import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import i18n.LocalStrings
@@ -146,18 +143,16 @@ class GamePageClockState(
 @Composable
 fun rememberSaveableGamePageLogicState(
     coroutineScope: CoroutineScope = rememberCoroutineScope(),
-    scaffoldState: ScaffoldState = rememberScaffoldState(),
 ): GamePageLogicState {
     val strings = LocalStrings.current
-    return rememberSaveable(coroutineScope, scaffoldState) {
-        GamePageLogicState(coroutineScope, scaffoldState, strings)
+    return rememberSaveable(coroutineScope) {
+        GamePageLogicState(coroutineScope, strings)
     }
 }
 
 @Stable
 class GamePageLogicState(
     private val coroutineScope: CoroutineScope,
-    private val scaffoldState: ScaffoldState,
     private val strings: Strings,
 ) {
     var purposeStartGameDialogOpen by mutableStateOf(false)
@@ -176,7 +171,7 @@ class GamePageLogicState(
     var whitePlayerType by mutableStateOf(ChessGameManager.getWhitePlayerType())
     var blackPlayerType by mutableStateOf(ChessGameManager.getBlackPlayerType())
 
-    fun stopGameByTimeout(whiteTimeout: Boolean) {
+    fun stopGameByTimeout(whiteTimeout: Boolean, notifyUser: (String) -> Unit) {
         if (ChessGameManager.checkIfPlayerWinningOnTimeIsMissingMaterialAndUpdatePgnResultTag()) {
             ChessGameManager.stopGame()
             gameInProgress = ChessGameManager.isGameInProgress()
@@ -185,11 +180,7 @@ class GamePageLogicState(
             blackPlayerType = ChessGameManager.getBlackPlayerType()
 
             val message = strings.drawOnTimeByInsufficientMaterial
-            coroutineScope.launch {
-                scaffoldState.snackbarHostState.showSnackbar(
-                    message, actionLabel = strings.close, duration = SnackbarDuration.Long
-                )
-            }
+            notifyUser(message)
         } else {
             ChessGameManager.stopGame()
             gameInProgress = ChessGameManager.isGameInProgress()
@@ -198,64 +189,49 @@ class GamePageLogicState(
             blackPlayerType = ChessGameManager.getBlackPlayerType()
 
             val message = if (whiteTimeout) strings.blackWonOnTime else strings.whiteWonOnTime
-            coroutineScope.launch {
-                scaffoldState.snackbarHostState.showSnackbar(
-                    message, actionLabel = strings.close, duration = SnackbarDuration.Long
-                )
-            }
+            notifyUser(message)
         }
     }
 
-    fun onCheckmate(whitePlayer: Boolean) {
+    fun onCheckmate(whitePlayer: Boolean, notifyUser: (String) -> Unit) {
         whitePlayerType = ChessGameManager.getWhitePlayerType()
         blackPlayerType = ChessGameManager.getBlackPlayerType()
         coroutineScope.launch {
-            scaffoldState.snackbarHostState.showSnackbar(
-                if (whitePlayer) strings.whiteWonGame else strings.blackWonGame,
-                actionLabel = strings.close,
-                duration = SnackbarDuration.Long
-            )
+            val message = if (whitePlayer) strings.whiteWonGame else strings.blackWonGame
+            notifyUser(message)
         }
     }
 
-    fun onStalemate() {
+    fun onStalemate(notifyUser: (String) -> Unit) {
         whitePlayerType = ChessGameManager.getWhitePlayerType()
         blackPlayerType = ChessGameManager.getBlackPlayerType()
-        coroutineScope.launch {
-            scaffoldState.snackbarHostState.showSnackbar(
-                strings.drawByStalemate, actionLabel = strings.close, duration = SnackbarDuration.Long
-            )
-        }
+        notifyUser(
+            strings.drawByStalemate
+        )
     }
 
-    fun onThreeFoldRepetition() {
+    fun onThreeFoldRepetition(notifyUser: (String) -> Unit) {
         whitePlayerType = ChessGameManager.getWhitePlayerType()
         blackPlayerType = ChessGameManager.getBlackPlayerType()
-        coroutineScope.launch {
-            scaffoldState.snackbarHostState.showSnackbar(
-                strings.drawByThreeFoldRepetition, actionLabel = strings.close, duration = SnackbarDuration.Long
-            )
-        }
+        notifyUser(
+            strings.drawByThreeFoldRepetition
+        )
     }
 
-    fun onInsufficientMaterial() {
+    fun onInsufficientMaterial(notifyUser: (String) -> Unit) {
         whitePlayerType = ChessGameManager.getWhitePlayerType()
         blackPlayerType = ChessGameManager.getBlackPlayerType()
-        coroutineScope.launch {
-            scaffoldState.snackbarHostState.showSnackbar(
-                strings.drawByInsufficientMaterial, actionLabel = strings.close, duration = SnackbarDuration.Long
-            )
-        }
+        notifyUser(
+            strings.drawByInsufficientMaterial
+        )
     }
 
-    fun onFiftyMovesRuleDraw() {
+    fun onFiftyMovesRuleDraw(notifyUser: (String) -> Unit) {
         whitePlayerType = ChessGameManager.getWhitePlayerType()
         blackPlayerType = ChessGameManager.getBlackPlayerType()
-        coroutineScope.launch {
-            scaffoldState.snackbarHostState.showSnackbar(
-                strings.drawByFiftyMovesRule, actionLabel = strings.close, duration = SnackbarDuration.Long
-            )
-        }
+        notifyUser(
+            strings.drawByFiftyMovesRule
+        )
     }
 
     fun purposeStartNewGame() {
@@ -283,18 +259,16 @@ class GamePageLogicState(
         }
     }
 
-    fun stopGame(shouldShowSnackBarMessage: Boolean) {
+    fun stopGame(shouldShowSnackBarMessage: Boolean, notifyUser: (String) -> Unit) {
         ChessGameManager.stopGame()
         gameInProgress = ChessGameManager.isGameInProgress()
         selectedHistoryNodeIndex = ChessGameManager.getSelectedHistoryNodeIndex()
         whitePlayerType = ChessGameManager.getWhitePlayerType()
         blackPlayerType = ChessGameManager.getBlackPlayerType()
         if (shouldShowSnackBarMessage) {
-            coroutineScope.launch {
-                scaffoldState.snackbarHostState.showSnackbar(
-                    strings.gameAborted, actionLabel = strings.close, duration = SnackbarDuration.Long
-                )
-            }
+            notifyUser(
+                strings.gameAborted
+            )
         }
     }
 
@@ -304,7 +278,7 @@ class GamePageLogicState(
         pendingPromotionEndSquare = ChessGameManager.getPendingPromotionEndSquare()
     }
 
-    fun purposeSaveGameInPgnFile() {
+    fun purposeSaveGameInPgnFile(notifyUser: (String) -> Unit) {
         if (gameInProgress) return
         val folder = PreferencesManager.loadSavePgnFolder()
         val fileChooser = if (folder.isNotEmpty()) JFileChooser(folder) else JFileChooser()
@@ -321,22 +295,14 @@ class GamePageLogicState(
             val selectedFile = fileChooser.selectedFile
             try {
                 ChessGameManager.exportAsPgn(selectedFile)
-                coroutineScope.launch {
-                    scaffoldState.snackbarHostState.showSnackbar(
-                        message = strings.pgnExported,
-                        actionLabel = strings.close,
-                        duration = SnackbarDuration.Long,
-                    )
-                }
+                notifyUser(
+                    strings.pgnExported
+                )
             } catch (ex: Exception) {
                 println(ex)
-                coroutineScope.launch {
-                    scaffoldState.snackbarHostState.showSnackbar(
-                        message = strings.failedSavingPgnFile,
-                        actionLabel = strings.close,
-                        duration = SnackbarDuration.Long,
-                    )
-                }
+                notifyUser(
+                    strings.failedSavingPgnFile
+                )
             }
         }
     }
