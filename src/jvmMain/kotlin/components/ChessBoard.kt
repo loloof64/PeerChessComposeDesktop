@@ -83,20 +83,20 @@ fun ChessBoard(
     reversed: Boolean,
     whitePlayerType: PlayerType,
     blackPlayerType: PlayerType,
+    dragAndDropData: ChessBoardDragAndDropData?,
     lastMoveArrow: LastMoveArrow?,
     pendingPromotion: PendingPromotion,
     pendingPromotionStartFile: Int?,
     pendingPromotionStartRank: Int?,
     pendingPromotionEndFile: Int?,
     pendingPromotionEndRank: Int?,
-    tryPlayingMove: (DragAndDropData) -> Unit,
+    tryPlayingMove: (ChessBoardDragAndDropData) -> Unit,
     onCancelPromotion: () -> Unit,
     onValidatePromotion: (PromotionType) -> Unit,
     onCellClick: (Int, Int) -> Unit = { _, _ -> },
+    onDragAndDropDataUpdate: (ChessBoardDragAndDropData?) -> Unit,
     isEditable: Boolean = false,
 ) {
-    var dndData by rememberSaveable { mutableStateOf<DragAndDropData?>(null) }
-
     val bgColor = Color(0xFF9999FF)
     BoxWithConstraints {
         val heightBasedAspectRatio = maxHeight > maxWidth
@@ -115,7 +115,7 @@ fun ChessBoard(
                 reversed = reversed,
                 piecesValues = piecesValues,
                 isWhiteTurn = isWhiteTurn,
-                dndData = dndData,
+                dndData = dragAndDropData,
                 pendingPromotionStartFile = pendingPromotionStartFile,
                 pendingPromotionStartRank = pendingPromotionStartRank,
                 pendingPromotionEndFile = pendingPromotionEndFile,
@@ -127,6 +127,7 @@ fun ChessBoard(
                 lastMoveArrow = lastMoveArrow,
             )
             DragAndDropLayer(
+                outsideDragAndDropData = dragAndDropData,
                 cellSizePx = cellSizePx,
                 reversed = reversed,
                 isActive = pendingPromotion == PendingPromotion.None,
@@ -135,9 +136,7 @@ fun ChessBoard(
                 whitePlayerType = whitePlayerType,
                 blackPlayerType = blackPlayerType,
                 tryPlayingMove = tryPlayingMove,
-                onDndDataUpdate = { newDndData ->
-                    dndData = newDndData
-                },
+                onDndDataUpdate = { onDragAndDropDataUpdate(it) },
                 onCellClick = onCellClick,
                 isEditable = isEditable,
             )
@@ -253,6 +252,7 @@ private fun PromotionLayer(
 
 @Composable
 private fun DragAndDropLayer(
+    outsideDragAndDropData: ChessBoardDragAndDropData?,
     cellSizePx: Float,
     reversed: Boolean,
     isActive: Boolean,
@@ -260,13 +260,13 @@ private fun DragAndDropLayer(
     isWhiteTurn: Boolean,
     whitePlayerType: PlayerType,
     blackPlayerType: PlayerType,
-    onDndDataUpdate: (DragAndDropData?) -> Unit,
-    tryPlayingMove: (DragAndDropData) -> Unit,
+    onDndDataUpdate: (ChessBoardDragAndDropData?) -> Unit,
+    tryPlayingMove: (ChessBoardDragAndDropData) -> Unit,
     onCellClick: (Int, Int) -> Unit,
     isEditable: Boolean,
 ) {
     val strings = LocalStrings.current
-    var dndData by rememberSaveable { mutableStateOf<DragAndDropData?>(null) }
+    var dndData by rememberSaveable { mutableStateOf<ChessBoardDragAndDropData?>(null) }
     Column(
         modifier = Modifier.fillMaxSize()
             .pointerInput(reversed, piecesValues, isWhiteTurn, whitePlayerType, blackPlayerType, cellSizePx) {
@@ -309,7 +309,7 @@ private fun DragAndDropLayer(
                             if (!isOurPiece) return@detectDragGestures
 
                             dndData =
-                                DragAndDropData(
+                                ChessBoardDragAndDropData(
                                     startFile = file,
                                     startRank = rank,
                                     endFile = file,
@@ -348,8 +348,9 @@ private fun DragAndDropLayer(
                             val startAndEndCellsAreDifferent =
                                 (dndData!!.startFile != dndData!!.endFile) || (dndData!!.startRank != dndData!!.endRank)
                             if (startAndEndCellsAreDifferent) {
-                                val inBounds = (0..7).contains(dndData!!.startFile) && (0..7).contains(dndData!!.startRank)
-                                        && (0..7).contains(dndData!!.endFile) && (0..7).contains(dndData!!.endRank)
+                                val inBounds =
+                                    (0..7).contains(dndData!!.startFile) && (0..7).contains(dndData!!.startRank)
+                                            && (0..7).contains(dndData!!.endFile) && (0..7).contains(dndData!!.endRank)
                                 if (inBounds) {
                                     tryPlayingMove(dndData!!)
                                 }
@@ -366,7 +367,7 @@ private fun DragAndDropLayer(
                     )
                 }
             }) {
-        if (dndData != null) {
+        if (dndData != null && outsideDragAndDropData != null) {
             val xDp = with(LocalDensity.current) {
                 dndData!!.currentLocation.x.toDp()
             }
@@ -388,7 +389,7 @@ private fun LowerLayer(
     reversed: Boolean,
     piecesValues: List<List<Char>>,
     isWhiteTurn: Boolean,
-    dndData: DragAndDropData?,
+    dndData: ChessBoardDragAndDropData?,
     pendingPromotionStartFile: Int?,
     pendingPromotionStartRank: Int?,
     pendingPromotionEndFile: Int?,
@@ -425,7 +426,7 @@ private fun ChessBoardCellsLine(
     rowPiecesValues: List<Char>,
     reversed: Boolean,
     rowIndex: Int,
-    dndData: DragAndDropData?,
+    dndData: ChessBoardDragAndDropData?,
     pendingPromotionStartFile: Int?,
     pendingPromotionStartRank: Int?,
     pendingPromotionEndFile: Int?,
@@ -632,7 +633,7 @@ fun getContentDescriptionForPiece(pieceValue: Char, strings: Strings): String {
 }
 
 @Parcelize
-data class DragAndDropData(
+data class ChessBoardDragAndDropData(
     val startFile: Int,
     val startRank: Int,
     var endFile: Int,

@@ -2,6 +2,7 @@ package screens
 
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import components.ChessBoardDragAndDropData
 import i18n.LocalStrings
 import i18n.Strings
 import kotlinx.coroutines.*
@@ -171,8 +172,15 @@ class GamePageLogicState(
     var selectedHistoryNodeIndex by mutableStateOf(ChessGameManager.getSelectedHistoryNodeIndex())
     var whitePlayerType by mutableStateOf(ChessGameManager.getWhitePlayerType())
     var blackPlayerType by mutableStateOf(ChessGameManager.getBlackPlayerType())
+    var chessBoardDragAndDropData by mutableStateOf<ChessBoardDragAndDropData?>(null)
 
-    fun stopGameByTimeout(whiteTimeout: Boolean, notifyUser: (String) -> Unit) {
+    fun updateChessBoardDragAndDropData(dndData: ChessBoardDragAndDropData?) {
+        chessBoardDragAndDropData = dndData
+    }
+
+    suspend fun stopGameByTimeout(whiteTimeout: Boolean, notifyUser: (String) -> Unit) {
+        chessBoardDragAndDropData = null
+        delay(100)
         if (ChessGameManager.checkIfPlayerWinningOnTimeIsMissingMaterialAndUpdatePgnResultTag()) {
             ChessGameManager.stopGame()
             gameInProgress = ChessGameManager.isGameInProgress()

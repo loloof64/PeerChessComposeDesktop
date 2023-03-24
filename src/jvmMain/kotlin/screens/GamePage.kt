@@ -240,6 +240,7 @@ fun GamePage(
                             ChessBoardComponent(
                                 isWhiteTurn = gameLogicState.isWhiteTurn,
                                 piecesValues = gameLogicState.boardPieces,
+                                dragAndDropData = gameLogicState.chessBoardDragAndDropData,
                                 reversed = gameLogicState.boardReversed,
                                 whitePlayerType = gameLogicState.whitePlayerType,
                                 blackPlayerType = gameLogicState.blackPlayerType,
@@ -324,6 +325,7 @@ fun GamePage(
                                 },
                                 onMovePlayed = { onMovePlayed(it, clockState, gameLogicState) },
                                 onPromotionCancelled = { gameLogicState.onPromotionCancelled() },
+                                onDragAndDropDataUpdate = { gameLogicState.updateChessBoardDragAndDropData(it) }
                             )
 
                             Column(
@@ -359,6 +361,7 @@ fun GamePage(
                                 ChessBoardComponent(
                                     isWhiteTurn = gameLogicState.isWhiteTurn,
                                     piecesValues = gameLogicState.boardPieces,
+                                    dragAndDropData = gameLogicState.chessBoardDragAndDropData,
                                     reversed = gameLogicState.boardReversed,
                                     whitePlayerType = gameLogicState.whitePlayerType,
                                     blackPlayerType = gameLogicState.blackPlayerType,
@@ -450,6 +453,7 @@ fun GamePage(
                                     },
                                     onMovePlayed = { onMovePlayed(it, clockState, gameLogicState) },
                                     onPromotionCancelled = { gameLogicState.onPromotionCancelled() },
+                                    onDragAndDropDataUpdate = { gameLogicState.updateChessBoardDragAndDropData(it) }
                                 )
                             }
 
@@ -682,6 +686,7 @@ private fun ChessBoardComponent(
     gameInProgress: Boolean,
     isWhiteTurn: Boolean,
     reversed: Boolean,
+    dragAndDropData: ChessBoardDragAndDropData?,
     piecesValues: List<List<Char>>,
     whitePlayerType: PlayerType,
     blackPlayerType: PlayerType,
@@ -696,25 +701,27 @@ private fun ChessBoardComponent(
     onFiftyMovesRuleDraw: () -> Unit,
     onMovePlayed: (Boolean) -> Unit,
     onPromotionCancelled: () -> Unit,
+    onDragAndDropDataUpdate: (ChessBoardDragAndDropData?) -> Unit,
 ) {
     ChessBoard(isWhiteTurn = isWhiteTurn,
         piecesValues = piecesValues,
         reversed = reversed,
         whitePlayerType = whitePlayerType,
         blackPlayerType = blackPlayerType,
+        dragAndDropData = dragAndDropData,
         lastMoveArrow = lastMoveArrow,
         pendingPromotion = pendingPromotion,
         pendingPromotionStartFile = pendingPromotionStartSquare?.x,
         pendingPromotionStartRank = pendingPromotionStartSquare?.y,
         pendingPromotionEndFile = pendingPromotionEndSquare?.x,
         pendingPromotionEndRank = pendingPromotionEndSquare?.y,
-        tryPlayingMove = { dragAndDropData ->
+        tryPlayingMove = { dndData ->
             if (!gameInProgress) return@ChessBoard
             val moveResultInfo = ChessGameManager.playMove(
-                startFile = dragAndDropData.startFile,
-                startRank = dragAndDropData.startRank,
-                endFile = dragAndDropData.endFile,
-                endRank = dragAndDropData.endRank,
+                startFile = dndData.startFile,
+                startRank = dndData.startRank,
+                endFile = dndData.endFile,
+                endRank = dndData.endRank,
                 onCheckmate = onCheckmate,
                 onStalemate = onStalemate,
                 onThreeFoldsRepetition = onThreeFoldRepetition,
@@ -728,6 +735,7 @@ private fun ChessBoardComponent(
             ChessGameManager.cancelPromotion()
             onPromotionCancelled()
         },
+        onDragAndDropDataUpdate = { onDragAndDropDataUpdate(it) },
         onValidatePromotion = {
             if (!gameInProgress) return@ChessBoard
             ChessGameManager.commitPromotion(

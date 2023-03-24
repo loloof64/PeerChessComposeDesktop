@@ -99,6 +99,7 @@ fun EditPositionPage(
     var moveNumber by rememberSaveable { mutableStateOf(1) }
     var whiteTurn by rememberSaveable { mutableStateOf(true) }
     var currentFen by rememberSaveable { mutableStateOf(defaultPosition) }
+    var chessBoardDragAndDropData by rememberSaveable { mutableStateOf<ChessBoardDragAndDropData?>(null) }
 
     fun getPositionFen(): String {
         val boardPart = boardPositionFromPiecesValues(piecesValues)
@@ -128,8 +129,7 @@ fun EditPositionPage(
             navigation.push(Screen.Game) {
                 commitValidateActions()
             }
-        }
-        catch (ex: KingNotInTurnIsInCheck) {
+        } catch (ex: KingNotInTurnIsInCheck) {
             coroutineScope.launch {
                 scaffoldState.snackbarHostState.showSnackbar(
                     message = strings.oppositeKingInCheckFen,
@@ -137,8 +137,7 @@ fun EditPositionPage(
                     duration = SnackbarDuration.Long,
                 )
             }
-        }
-        catch (ex: WrongFieldsCountException) {
+        } catch (ex: WrongFieldsCountException) {
             coroutineScope.launch {
                 scaffoldState.snackbarHostState.showSnackbar(
                     message = strings.wrongFieldsCountFen,
@@ -146,8 +145,7 @@ fun EditPositionPage(
                     duration = SnackbarDuration.Long,
                 )
             }
-        }
-        catch (ex: WrongKingsCountException) {
+        } catch (ex: WrongKingsCountException) {
             coroutineScope.launch {
                 scaffoldState.snackbarHostState.showSnackbar(
                     message = strings.wrongKingsCountFen,
@@ -226,6 +224,7 @@ fun EditPositionPage(
                     ChessBoard(
                         isEditable = true,
                         piecesValues = piecesValues,
+                        dragAndDropData = chessBoardDragAndDropData,
                         whitePlayerType = PlayerType.None,
                         blackPlayerType = PlayerType.None,
                         isWhiteTurn = whiteTurn,
@@ -242,7 +241,8 @@ fun EditPositionPage(
                         onCellClick = { file, rank ->
                             piecesValues = piecesValues.replace(7 - rank, file, currentEditingPiece)
                             currentFen = getPositionFen()
-                        }
+                        },
+                        onDragAndDropDataUpdate = { chessBoardDragAndDropData = it }
                     )
                 }
 
@@ -435,7 +435,8 @@ fun PositionEditingControls(
             } else {
                 Row(modifier = Modifier.border(width = 1.dp, color = Color.Black, shape = RectangleShape).size(50.dp)) {
                     Image(
-                        modifier = Modifier.border(width = 1.dp, color = Color.Black, shape = RectangleShape).size(50.dp),
+                        modifier = Modifier.border(width = 1.dp, color = Color.Black, shape = RectangleShape)
+                            .size(50.dp),
                         painter = painterResource("images/material_vectors/delete.svg"),
                         contentDescription = strings.eraseCell,
                         colorFilter = ColorFilter.tint(Color.Red)
