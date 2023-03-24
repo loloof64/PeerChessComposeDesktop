@@ -42,7 +42,8 @@ class GamePageClockState(
      * stoppingGameCallback : what to do whenever a stop game by timeout request is emitted.
      * The parameter is a boolean indicating if white has lost, or if it is black that lost the game.
      */
-    fun startClock(stoppingGameCallback: (Boolean) -> Unit) {
+    fun startClock(whiteStarts: Boolean, stoppingGameCallback: (Boolean) -> Unit) {
+        whiteTimeActive = whiteStarts
         clockJob = coroutineScope.launch {
             while (isActive) {
                 delay(100)

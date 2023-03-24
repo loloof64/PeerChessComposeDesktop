@@ -125,7 +125,7 @@ fun startNewGame(
         gameLogicState.updateGameStatus()
         if (clockState.clockSelected) {
             clockState.updateClockValue()
-            clockState.startClock { whiteIsLooserSide ->
+            clockState.startClock(whiteStarts = gameLogicState.isWhiteTurn) { whiteIsLooserSide ->
                 coroutineScope.launch {
                     stopGameByTimeout(
                         whiteIsLooserSide,
