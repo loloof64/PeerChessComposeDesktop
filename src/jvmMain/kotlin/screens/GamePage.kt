@@ -160,11 +160,11 @@ fun notifyUser(message: String, closeMessage: String, coroutineScope: CoroutineS
 fun GamePage(
     navigation: StackNavigation<Screen>,
     coroutineScope: CoroutineScope = rememberCoroutineScope(),
+    scaffoldState: ScaffoldState,
 ) {
     val strings = LocalStrings.current
     val clockState = rememberSaveableGamePageClockState(coroutineScope = coroutineScope)
     val gameLogicState = rememberSaveableGamePageLogicState(coroutineScope = coroutineScope)
-    val scaffoldState = rememberScaffoldState()
 
     BoxWithConstraints {
         val isLandscape = maxWidth > maxHeight

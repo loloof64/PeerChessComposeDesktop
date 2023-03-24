@@ -1,5 +1,6 @@
 package screens
 
+import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -19,6 +20,7 @@ import navigator.ChildStack
 fun MainContent() {
     val navigation = remember { StackNavigation<Screen>() }
     val coroutineScope = rememberCoroutineScope()
+    val scaffoldState = rememberScaffoldState()
 
     ChildStack(
         source = navigation,
@@ -33,10 +35,12 @@ fun MainContent() {
             is Screen.Game -> GamePage(
                 navigation = navigation,
                 coroutineScope = coroutineScope,
+                scaffoldState = scaffoldState,
             )
 
             is Screen.EditPosition -> EditPositionPage(
                 navigation = navigation,
+                scaffoldState = scaffoldState,
                 commitValidateActions = screen.validateAction,
             )
         }

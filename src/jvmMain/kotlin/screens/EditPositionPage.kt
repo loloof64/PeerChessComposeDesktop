@@ -79,13 +79,13 @@ private fun <T> List<List<T>>.replace(row: Int, col: Int, newValue: T): List<Lis
 @Composable
 fun EditPositionPage(
     navigation: StackNavigation<Screen>,
+    scaffoldState: ScaffoldState,
     commitValidateActions: () -> Unit,
 ) {
     val strings = LocalStrings.current
     val clipboardManager = LocalClipboardManager.current
 
     val coroutineScope = rememberCoroutineScope()
-    val scaffoldState = rememberScaffoldState()
 
     var boardReversed by rememberSaveable { mutableStateOf(false) }
     var piecesValues by rememberSaveable { mutableStateOf(positionFenToPiecesArray(defaultPosition)) }
