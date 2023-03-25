@@ -133,24 +133,21 @@ fun EditPositionPage(
             coroutineScope.launch {
                 scaffoldState.snackbarHostState.showSnackbar(
                     message = strings.oppositeKingInCheckFen,
-                    actionLabel = strings.close,
-                    duration = SnackbarDuration.Long,
+                    duration = SnackbarDuration.Short,
                 )
             }
         } catch (ex: WrongFieldsCountException) {
             coroutineScope.launch {
                 scaffoldState.snackbarHostState.showSnackbar(
                     message = strings.wrongFieldsCountFen,
-                    actionLabel = strings.close,
-                    duration = SnackbarDuration.Long,
+                    duration = SnackbarDuration.Short,
                 )
             }
         } catch (ex: WrongKingsCountException) {
             coroutineScope.launch {
                 scaffoldState.snackbarHostState.showSnackbar(
                     message = strings.wrongKingsCountFen,
-                    actionLabel = strings.close,
-                    duration = SnackbarDuration.Long,
+                    duration = SnackbarDuration.Short,
                 )
             }
         }

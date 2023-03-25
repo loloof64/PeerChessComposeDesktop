@@ -147,10 +147,10 @@ fun onMovePlayed(isPendingPromotionMove: Boolean, clockState: GamePageClockState
     gameLogicState.updateGameStatus()
 }
 
-fun notifyUser(message: String, closeMessage: String, coroutineScope: CoroutineScope, scaffoldState: ScaffoldState) {
+fun notifyUser(message: String, coroutineScope: CoroutineScope, scaffoldState: ScaffoldState) {
     coroutineScope.launch {
         scaffoldState.snackbarHostState.showSnackbar(
-            message, actionLabel = closeMessage, duration = SnackbarDuration.Long
+            message, duration = SnackbarDuration.Short
         )
     }
 }
@@ -208,7 +208,6 @@ fun GamePage(
                         gameLogicState.purposeSaveGameInPgnFile {
                             notifyUser(
                                 it,
-                                strings.close,
                                 coroutineScope,
                                 scaffoldState
                             )
@@ -258,7 +257,6 @@ fun GamePage(
                                     ) { msg ->
                                         notifyUser(
                                             msg,
-                                            strings.close,
                                             coroutineScope,
                                             scaffoldState
                                         )
@@ -269,7 +267,6 @@ fun GamePage(
                                     onStalemate(clockState, gameLogicState, coroutineScope) {
                                         notifyUser(
                                             it,
-                                            strings.close,
                                             coroutineScope,
                                             scaffoldState
                                         )
@@ -284,7 +281,6 @@ fun GamePage(
                                     {
                                         notifyUser(
                                             it,
-                                            strings.close,
                                             coroutineScope,
                                             scaffoldState
                                         )
@@ -300,7 +296,6 @@ fun GamePage(
                                     {
                                         notifyUser(
                                             it,
-                                            strings.close,
                                             coroutineScope,
                                             scaffoldState
                                         )
@@ -316,7 +311,6 @@ fun GamePage(
                                     {
                                         notifyUser(
                                             it,
-                                            strings.close,
                                             coroutineScope,
                                             scaffoldState
                                         )
@@ -380,7 +374,6 @@ fun GamePage(
                                         { msg ->
                                             notifyUser(
                                                 msg,
-                                                strings.close,
                                                 coroutineScope,
                                                 scaffoldState
                                             )
@@ -396,7 +389,6 @@ fun GamePage(
                                         {
                                             notifyUser(
                                                 it,
-                                                strings.close,
                                                 coroutineScope,
                                                 scaffoldState
                                             )
@@ -412,7 +404,6 @@ fun GamePage(
                                         {
                                             notifyUser(
                                                 it,
-                                                strings.close,
                                                 coroutineScope,
                                                 scaffoldState
                                             )
@@ -428,7 +419,6 @@ fun GamePage(
                                         {
                                             notifyUser(
                                                 it,
-                                                strings.close,
                                                 coroutineScope,
                                                 scaffoldState
                                             )
@@ -444,7 +434,6 @@ fun GamePage(
                                         {
                                             notifyUser(
                                                 it,
-                                                strings.close,
                                                 coroutineScope,
                                                 scaffoldState
                                             )
@@ -601,7 +590,6 @@ fun GamePage(
                     startNewGame(clockState, gameLogicState, navigation, coroutineScope) {
                         notifyUser(
                             it,
-                            strings.close,
                             coroutineScope,
                             scaffoldState
                         )
@@ -631,7 +619,6 @@ fun GamePage(
                     stopGame(shouldShowSnackBarMessage = true, clockState, gameLogicState, coroutineScope) {
                         notifyUser(
                             it,
-                            strings.close,
                             coroutineScope,
                             scaffoldState
                         )
@@ -661,7 +648,6 @@ fun GamePage(
                     gameLogicState.stopGame(shouldShowSnackBarMessage = false) {
                         notifyUser(
                             it,
-                            strings.close,
                             coroutineScope,
                             scaffoldState
                         )
