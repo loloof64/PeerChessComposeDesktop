@@ -45,7 +45,7 @@ class GamePageClockState(
      */
     fun startClock(whiteStarts: Boolean, stoppingGameCallback: (Boolean) -> Unit) {
         whiteTimeActive = whiteStarts
-        clockJob = coroutineScope.launch {
+        clockJob = coroutineScope.launch(Dispatchers.Default) {
             while (isActive) {
                 delay(100)
                 if (whiteTimeActive) {
