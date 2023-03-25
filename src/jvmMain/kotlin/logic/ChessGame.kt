@@ -69,6 +69,12 @@ object ChessGameManager {
 
     fun getCurrentPosition(): String = _gameLogic.fen
 
+    fun cancelPendingPromotion() {
+        _pendingPromotion = PendingPromotion.None
+        _pendingPromotionStartSquare = null
+        _pendingPromotionEndSquare = null
+    }
+
     fun exportAsPgn(outputFile: File) {
         val exporter = PGNExporter(FileOutputStream(outputFile))
         _savedGameLogic?.setPgnTag(PgnTag.EVENT, "")

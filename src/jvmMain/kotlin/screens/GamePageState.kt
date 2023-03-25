@@ -180,6 +180,10 @@ class GamePageLogicState(
 
     suspend fun stopGameByTimeout(whiteTimeout: Boolean, notifyUser: (String) -> Unit) {
         chessBoardDragAndDropData = null
+        ChessGameManager.cancelPendingPromotion()
+        pendingPromotion = ChessGameManager.getPendingPromotion()
+        pendingPromotionStartSquare = ChessGameManager.getPendingPromotionStartSquare()
+        pendingPromotionEndSquare = ChessGameManager.getPendingPromotionEndSquare()
         delay(100)
         if (ChessGameManager.checkIfPlayerWinningOnTimeIsMissingMaterialAndUpdatePgnResultTag()) {
             ChessGameManager.stopGame()
