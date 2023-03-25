@@ -594,13 +594,13 @@ fun GamePage(
                             scaffoldState
                         )
                     }
-                }) {
+                }, colors = ButtonDefaults.buttonColors(Color(0xFF0F7324), Color.White)) {
                     Text(strings.validate)
                 }
             }, dismissButton = {
                 Button({
                     gameLogicState.purposeStartGameDialogOpen = false
-                }) {
+                }, colors = ButtonDefaults.buttonColors(Color.Red, Color.White)) {
                     Text(strings.cancel)
                 }
             })
@@ -623,13 +623,13 @@ fun GamePage(
                             scaffoldState
                         )
                     }
-                }) {
+                }, colors = ButtonDefaults.buttonColors(Color(0xFF0F7324), Color.White)) {
                     Text(strings.validate)
                 }
             }, dismissButton = {
                 Button({
                     gameLogicState.purposeStopGameDialogOpen = false
-                }) {
+                }, colors = ButtonDefaults.buttonColors(Color.Red, Color.White)) {
                     Text(strings.cancel)
                 }
             })
@@ -653,13 +653,13 @@ fun GamePage(
                         )
                     }
                     navigation.pop()
-                }) {
+                }, colors = ButtonDefaults.buttonColors(Color(0xFF0F7324), Color.White)) {
                     Text(strings.validate)
                 }
             }, dismissButton = {
                 Button({
                     gameLogicState.confirmExitGameDialogOpen = false
-                }) {
+                }, colors = ButtonDefaults.buttonColors(Color.Red, Color.White)) {
                     Text(strings.cancel)
                 }
             })

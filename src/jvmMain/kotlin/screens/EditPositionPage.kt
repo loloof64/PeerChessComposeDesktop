@@ -323,10 +323,10 @@ fun EditPositionPage(
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Button(::onValidate) {
+                Button(::onValidate, colors = ButtonDefaults.buttonColors(Color(0xFF0F7324), Color.White)) {
                     Text(strings.validate)
                 }
-                Button(::onCancel) {
+                Button(::onCancel, colors = ButtonDefaults.buttonColors(Color.Red, Color.White)) {
                     Text(strings.cancel)
                 }
             }
@@ -557,11 +557,15 @@ fun PositionEditingControls(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Button({ onDefaultBoardPosition() }) {
+            Button({ onDefaultBoardPosition() }, colors = ButtonDefaults.buttonColors(Color.Blue, Color.White)) {
                 Text(strings.setDefaultPosition)
             }
 
-            Button({ onEraseBoard() }, modifier = Modifier.padding(start = 10.dp)) {
+            Button(
+                { onEraseBoard() },
+                colors = ButtonDefaults.buttonColors(Color.Blue, Color.White),
+                modifier = Modifier.padding(start = 10.dp)
+            ) {
                 Text(strings.eraseBoard)
             }
         }
@@ -571,11 +575,15 @@ fun PositionEditingControls(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Button({ onCopyPositionFen() }) {
+            Button({ onCopyPositionFen() }, colors = ButtonDefaults.buttonColors(Color.Blue, Color.White)) {
                 Text(strings.copyFen)
             }
 
-            Button({ onPastePositionFen() }, modifier = Modifier.padding(start = 10.dp)) {
+            Button(
+                { onPastePositionFen() },
+                colors = ButtonDefaults.buttonColors(Color.Blue, Color.White),
+                modifier = Modifier.padding(start = 10.dp)
+            ) {
                 Text(strings.pasteFen)
             }
         }
